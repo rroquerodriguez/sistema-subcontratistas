@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 204 19% 26%;
+    --card: 0 0% 100%;
+    --card-foreground: 204 19% 26%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 204 19% 26%;
+    --primary: 204 19% 26%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 92%;
+    --secondary-foreground: 204 19% 26%;
+    --muted: 0 0% 95%;
+    --muted-foreground: 210 13% 40%;
+    --accent: 0 0% 90%;
+    --accent-foreground: 204 19% 26%;
+    --destructive: 0 70% 45%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 87%;
+    --input: 0 0% 87%;
+    --ring: 204 19% 26%;
+    --radius: 0.6rem;
+
+    --success: 142 71% 30%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 92% 35%;
+    --warning-foreground: 0 0% 98%;
+
+    --sidebar-bg: 204 19% 26%;
+    --sidebar-fg: 0 0% 90%;
+    --sidebar-muted: 210 13% 72%;
+    --sidebar-hover: 210 13% 35%;
+    --sidebar-active: 210 13% 50%;
+  }
+
+  .dark {
+    --background: 204 19% 12%;
+    --foreground: 0 0% 95%;
+    --card: 204 19% 15%;
+    --card-foreground: 0 0% 95%;
+    --popover: 204 19% 15%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 0 0% 90%;
+    --primary-foreground: 204 19% 18%;
+    --secondary: 204 12% 22%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 204 12% 22%;
+    --muted-foreground: 210 13% 65%;
+    --accent: 204 12% 25%;
+    --accent-foreground: 0 0% 95%;
+    --destructive: 0 62.8% 40%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 204 12% 25%;
+    --input: 204 12% 25%;
+    --ring: 0 0% 83.1%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'DejaVu Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  h1, h2, h3, h4, .font-heading {
+    font-family: 'DejaVu Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 700;
+  }
+}
