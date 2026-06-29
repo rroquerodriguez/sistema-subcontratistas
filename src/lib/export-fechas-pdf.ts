@@ -1,5 +1,5 @@
 import type { Subcontratista, FechaPrometida } from '@/types';
-import { fmtDate, fmtDateTime } from './utils-app';
+import { fmtDate, fmtDateTime, abrirReporteParaImprimir } from './utils-app';
 import { diasAtrasoFechaPrometida, estaAtrasada, estaCumplida } from './stats-engine';
 
 function esc(s: string): string {
@@ -155,11 +155,5 @@ export function exportFechasPDF(fechas: FechaPrometida[], subs: Subcontratista[]
 </body>
 </html>`;
 
-  const w = window.open('', '_blank');
-  if (w) {
-    w.document.write(html);
-    w.document.close();
-    w.onload = () => w.print();
-    setTimeout(() => { try { w.print(); } catch { /* noop */ } }, 400);
-  }
+  abrirReporteParaImprimir(html);
 }
