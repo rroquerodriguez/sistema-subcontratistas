@@ -1,5 +1,5 @@
 import type { Subcontratista, RegistroBitacora, Taller, CicloTaller, Queja } from '@/types';
-import { fmtDate, fmtHora, soloFecha } from './utils-app';
+import { fmtDate, fmtHora, soloFecha, abrirReporteParaImprimir } from './utils-app';
 import { buildNarrativeBitacora, duracionCiclo, quejasDelTaller } from './stats-engine';
 
 function esc(s: string): string {
@@ -192,11 +192,5 @@ export function exportBitacoraPDF(
 </body>
 </html>`;
 
-  const w = window.open('', '_blank');
-  if (w) {
-    w.document.write(html);
-    w.document.close();
-    w.onload = () => w.print();
-    setTimeout(() => { try { w.print(); } catch { /* noop */ } }, 400);
-  }
+  abrirReporteParaImprimir(html);
 }
