@@ -1,7 +1,7 @@
 import type { Subcontratista, Stats, Queja } from '@/types';
 import type { TallerDetailExt } from './stats-engine';
 import { historialIncidenciasContratista, diasAtrasoFechaPrometida, estaCumplida, estaAtrasada } from './stats-engine';
-import { fmtDate } from './utils-app';
+import { fmtDate, abrirReporteParaImprimir } from './utils-app';
 
 function esc(s: string): string {
   return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -276,11 +276,5 @@ export function exportEvaluacionPDF(
 </body>
 </html>`;
 
-  const w = window.open('', '_blank');
-  if (w) {
-    w.document.write(html);
-    w.document.close();
-    w.onload = () => w.print();
-    setTimeout(() => { try { w.print(); } catch { /* noop */ } }, 400);
-  }
+  abrirReporteParaImprimir(html);
 }
