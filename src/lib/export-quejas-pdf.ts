@@ -1,5 +1,5 @@
 import type { Subcontratista, Queja } from '@/types';
-import { fmtDate } from './utils-app';
+import { fmtDate, abrirReporteParaImprimir } from './utils-app';
 import { buildNarrativeIncidencias, resumenAtrasoPorCausa } from './stats-engine';
 
 function esc(s: string): string {
@@ -146,11 +146,5 @@ export function exportQuejasPDF(quejas: Queja[], subs: Subcontratista[], subFilt
 </body>
 </html>`;
 
-  const w = window.open('', '_blank');
-  if (w) {
-    w.document.write(html);
-    w.document.close();
-    w.onload = () => w.print();
-    setTimeout(() => { try { w.print(); } catch { /* noop */ } }, 400);
-  }
+  abrirReporteParaImprimir(html);
 }
