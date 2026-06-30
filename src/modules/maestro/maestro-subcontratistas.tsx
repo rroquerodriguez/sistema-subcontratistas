@@ -11,6 +11,8 @@ import { SubcontratistaForm } from './subcontratista-form';
 import { dbSet } from '@/lib/storage';
 import { uid } from '@/lib/utils-app';
 import { descargarPlantillaMaestro, parsePlantillaMaestro, exportMaestroExcel, type FilaMaestroResultado } from '@/lib/import-maestro';
+import { useUsuarioActual } from '@/lib/usuario-actual-context';
+import { puedeEditar } from '@/lib/auth';
 import type { Subcontratista, Taller, Queja } from '@/types';
 
 interface MaestroSubcontratistasProps {
@@ -22,6 +24,8 @@ interface MaestroSubcontratistasProps {
 }
 
 export function MaestroSubcontratistas({ subs, setSubs, talleres, quejas, showToast }: MaestroSubcontratistasProps) {
+  const usuario = useUsuarioActual();
+  const soloLectura = !puedeEditar(usuario.perfil, 'maestro');
   const [editing, setEditing] = useState<Subcontratista | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Subcontratista | null>(null);
@@ -90,14 +94,14 @@ export function MaestroSubcontratistas({ subs, setSubs, talleres, quejas, showTo
               <Button variant="outline" onClick={descargarPlantillaMaestro}>
                 <Download size={14} />Descargar plantilla
               </Button>
-              <Button variant="outline" onClick={() => plantillaInputRef.current?.click()} disabled={subiendoPlantilla}>
+              <Button variant="outline" onClick={() => plantillaInputRef.current?.click()} disabled={subiendoPlantilla || soloLectura}>
                 <Upload size={14} />{subiendoPlantilla ? 'Leyendo...' : 'Subir plantilla'}
               </Button>
               <input ref={plantillaInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handlePlantillaFile} />
               <Button variant="outline" onClick={() => exportMaestroExcel(subs)}>
                 <FileSpreadsheet size={14} />Exportar
               </Button>
-              <Button onClick={() => setShowNew(true)}>
+              <Button onClick={() => setShowNew(true)} disabled={soloLectura}>
                 <Plus size={14} />
                 Agregar subcontratista
               </Button>
@@ -137,11 +141,11 @@ export function MaestroSubcontratistas({ subs, setSubs, talleres, quejas, showTo
                   <TableCell>{tallerCount(s.id)}</TableCell>
                   <TableCell>{quejaCount(s.id) > 0 ? <Badge variant="warning">{quejaCount(s.id)}</Badge> : '0'}</TableCell>
                   <TableCell className="whitespace-nowrap text-right">
-                    <Button size="sm" variant="outline" className="mr-1.5" onClick={() => setEditing(s)}>
+                    <Button size="sm" variant="outline" className="mr-1.5" onClick={() => setEditing(s)} disabled={soloLectura}>
                       <Pencil size={13} />
                       Editar
                     </Button>
-                    <Button size="sm" variant="outline" className="text-destructive" onClick={() => setConfirmDelete(s)}>
+                    <Button size="sm" variant="outline" className="text-destructive" onClick={() => setConfirmDelete(s)} disabled={soloLectura}>
                       <Trash2 size={13} />
                       Eliminar
                     </Button>
