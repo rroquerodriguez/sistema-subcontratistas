@@ -17,6 +17,8 @@ import { MultiActividadForm, type MultiActividadRow } from './multi-actividad-fo
 import { dbSet } from '@/lib/storage';
 import { uid } from '@/lib/utils-app';
 import { descargarPlantillaCatalogo, parsePlantillaCatalogo, exportCatalogoExcel, type FilaCatalogoResultado } from '@/lib/import-catalogo';
+import { useUsuarioActual } from '@/lib/usuario-actual-context';
+import { puedeEditar } from '@/lib/auth';
 import type { Subcontratista, TallerCatalogo } from '@/types';
 
 interface CatalogoTalleresProps {
@@ -26,7 +28,7 @@ interface CatalogoTalleresProps {
   showToast: (msg: string) => void;
 }
 
-function CatalogoTabla({ items, onEdit, onRemove }: { items: TallerCatalogo[]; onEdit: (c: TallerCatalogo) => void; onRemove: (id: string) => void }) {
+function CatalogoTabla({ items, onEdit, onRemove, soloLectura }: { items: TallerCatalogo[]; onEdit: (c: TallerCatalogo) => void; onRemove: (id: string) => void; soloLectura?: boolean }) {
   const columnas: ColumnConfig<TallerCatalogo>[] = [
     { key: 'actividad', getValue: (c) => c.actividad },
     { key: 'notas', getValue: (c) => c.notas },
@@ -48,8 +50,8 @@ function CatalogoTabla({ items, onEdit, onRemove }: { items: TallerCatalogo[]; o
             <TableCell className="font-medium">{c.actividad}</TableCell>
             <TableCell className="text-muted-foreground">{c.notas || '—'}</TableCell>
             <TableCell className="whitespace-nowrap">
-              <Button size="icon" variant="outline" className="mr-1.5 h-8 w-8" onClick={() => onEdit(c)} aria-label="Editar"><Pencil size={14} /></Button>
-              <Button size="icon" variant="outline" className="h-8 w-8 text-destructive" onClick={() => onRemove(c.id)} aria-label="Eliminar"><Trash2 size={14} /></Button>
+              <Button size="icon" variant="outline" className="mr-1.5 h-8 w-8" onClick={() => onEdit(c)} aria-label="Editar" disabled={soloLectura}><Pencil size={14} /></Button>
+              <Button size="icon" variant="outline" className="h-8 w-8 text-destructive" onClick={() => onRemove(c.id)} aria-label="Eliminar" disabled={soloLectura}><Trash2 size={14} /></Button>
             </TableCell>
           </TableRow>
         ))}
@@ -59,6 +61,8 @@ function CatalogoTabla({ items, onEdit, onRemove }: { items: TallerCatalogo[]; o
 }
 
 export function CatalogoTalleres({ subs, catalogo, setCatalogo, showToast }: CatalogoTalleresProps) {
+  const usuario = useUsuarioActual();
+  const soloLectura = !puedeEditar(usuario.perfil, 'catalogo');
   const [filtroSub, setFiltroSub] = useState('todos');
   const [showMulti, setShowMulti] = useState(false);
   const [editing, setEditing] = useState<TallerCatalogo | null>(null);
@@ -154,11 +158,11 @@ export function CatalogoTalleres({ subs, catalogo, setCatalogo, showToast }: Cat
               </SelectContent>
             </Select>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={() => setShowMulti(true)}><Plus size={14} />Agregar actividades</Button>
+              <Button onClick={() => setShowMulti(true)} disabled={soloLectura}><Plus size={14} />Agregar actividades</Button>
               <Button variant="outline" onClick={() => descargarPlantillaCatalogo(subs)}>
                 <Download size={14} />Descargar plantilla
               </Button>
-              <Button variant="outline" onClick={() => plantillaInputRef.current?.click()} disabled={subiendoPlantilla}>
+              <Button variant="outline" onClick={() => plantillaInputRef.current?.click()} disabled={subiendoPlantilla || soloLectura}>
                 <Upload size={14} />{subiendoPlantilla ? 'Leyendo...' : 'Subir plantilla'}
               </Button>
               <input ref={plantillaInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handlePlantillaFile} />
@@ -186,7 +190,7 @@ export function CatalogoTalleres({ subs, catalogo, setCatalogo, showToast }: Cat
                   </div>
                 }
               >
-                <CatalogoTabla items={items} onEdit={openEdit} onRemove={remove} />
+                <CatalogoTabla items={items} onEdit={openEdit} onRemove={remove} soloLectura={soloLectura} />
               </CollapsibleGroup>
             ))
           )}
