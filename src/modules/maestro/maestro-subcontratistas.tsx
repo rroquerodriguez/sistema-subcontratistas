@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Plus, Pencil, Trash2, Download, Upload, FileSpreadsheet, AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { SubAvatar } from '@/components/shared/sub-avatar';
 import { SubcontratistaForm } from './subcontratista-form';
 import { dbSet } from '@/lib/storage';
+import { uid } from '@/lib/utils-app';
+import { descargarPlantillaMaestro, parsePlantillaMaestro, exportMaestroExcel, type FilaMaestroResultado } from '@/lib/import-maestro';
 import type { Subcontratista, Taller, Queja } from '@/types';
 
 interface MaestroSubcontratistasProps {
@@ -24,6 +26,9 @@ export function MaestroSubcontratistas({ subs, setSubs, talleres, quejas, showTo
   const [showNew, setShowNew] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Subcontratista | null>(null);
   const [q, setQ] = useState('');
+  const [subiendoPlantilla, setSubiendoPlantilla] = useState(false);
+  const [previewPlantilla, setPreviewPlantilla] = useState<FilaMaestroResultado | null>(null);
+  const plantillaInputRef = useRef<HTMLInputElement>(null);
 
   const save = async (sub: Subcontratista) => {
     const exists = subs.find((s) => s.id === sub.id);
@@ -43,6 +48,32 @@ export function MaestroSubcontratistas({ subs, setSubs, talleres, quejas, showTo
     showToast('Subcontratista eliminado');
   };
 
+  const handlePlantillaFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSubiendoPlantilla(true);
+    try {
+      const resultado = await parsePlantillaMaestro(file, subs);
+      setPreviewPlantilla(resultado);
+    } catch (err) {
+      alert('No se pudo leer el archivo. Verifica que sea la plantilla del maestro en formato Excel (.xlsx).');
+      console.error(err);
+    } finally {
+      setSubiendoPlantilla(false);
+      e.target.value = '';
+    }
+  };
+
+  const confirmarImportacionPlantilla = async () => {
+    if (!previewPlantilla || !previewPlantilla.subcontratistas.length) { setPreviewPlantilla(null); return; }
+    const nuevos: Subcontratista[] = previewPlantilla.subcontratistas.map((s) => ({ ...s, id: uid('sub') }));
+    const next = [...subs, ...nuevos];
+    setSubs(next);
+    await dbSet('subcontratistas', next);
+    showToast(`${nuevos.length} subcontratista(s) importado(s)`);
+    setPreviewPlantilla(null);
+  };
+
   const filtered = subs.filter((s) => (s.nombre + s.especialidad).toLowerCase().includes(q.toLowerCase()));
   const tallerCount = (id: string) => talleres.filter((t) => t.subcontratistaId === id).length;
   const quejaCount = (id: string) => quejas.filter((qq) => qq.subcontratistaId === id).length;
@@ -51,14 +82,26 @@ export function MaestroSubcontratistas({ subs, setSubs, talleres, quejas, showTo
     <div>
       <Card>
         <CardContent className="p-5">
-          <div className="mb-3.5 flex items-center justify-between gap-2">
+          <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2">
             <span className="text-[15.5px] font-medium">
               Maestro de subcontratistas <span className="font-normal text-muted-foreground">({subs.length})</span>
             </span>
-            <Button onClick={() => setShowNew(true)}>
-              <Plus size={14} />
-              Agregar subcontratista
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={descargarPlantillaMaestro}>
+                <Download size={14} />Descargar plantilla
+              </Button>
+              <Button variant="outline" onClick={() => plantillaInputRef.current?.click()} disabled={subiendoPlantilla}>
+                <Upload size={14} />{subiendoPlantilla ? 'Leyendo...' : 'Subir plantilla'}
+              </Button>
+              <input ref={plantillaInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handlePlantillaFile} />
+              <Button variant="outline" onClick={() => exportMaestroExcel(subs)}>
+                <FileSpreadsheet size={14} />Exportar
+              </Button>
+              <Button onClick={() => setShowNew(true)}>
+                <Plus size={14} />
+                Agregar subcontratista
+              </Button>
+            </div>
           </div>
           <Input
             placeholder="Buscar subcontratista..."
@@ -141,6 +184,50 @@ export function MaestroSubcontratistas({ subs, setSubs, talleres, quejas, showTo
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmDelete(null)}>Cancelar</Button>
             <Button variant="destructive" onClick={() => confirmDelete && doDelete(confirmDelete.id)}>Eliminar definitivamente</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!previewPlantilla} onOpenChange={(o) => !o && setPreviewPlantilla(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Confirmar importación de plantilla</DialogTitle></DialogHeader>
+          {previewPlantilla && (
+            <div className="space-y-3">
+              <div className="rounded-md bg-muted/40 p-3 text-[13px]">
+                Se detectaron <strong>{previewPlantilla.totalFilas}</strong> fila(s) en el archivo, de las cuales <strong>{previewPlantilla.subcontratistas.length}</strong> se importarán al maestro.
+                {previewPlantilla.duplicados > 0 && <> Se omitieron <strong>{previewPlantilla.duplicados}</strong> por ya existir (mismo nombre).</>}
+              </div>
+              {previewPlantilla.erroresFila.length > 0 && (
+                <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-[12.5px]">
+                  <div className="mb-1 flex items-center gap-1.5 font-medium text-destructive"><AlertTriangle size={14} />Filas con errores (no se importarán)</div>
+                  <ul className="max-h-[140px] list-disc space-y-0.5 overflow-y-auto pl-4">
+                    {previewPlantilla.erroresFila.map((e, i) => <li key={i}>Fila {e.fila}: {e.motivo}</li>)}
+                  </ul>
+                </div>
+              )}
+              {previewPlantilla.subcontratistas.length > 0 && (
+                <div className="max-h-[160px] overflow-y-auto rounded-md border border-border text-[11.5px]">
+                  <table className="w-full">
+                    <thead className="bg-muted/50">
+                      <tr><th className="px-2 py-1 text-left">Nombre</th><th className="px-2 py-1 text-left">Especialidad</th></tr>
+                    </thead>
+                    <tbody>
+                      {previewPlantilla.subcontratistas.slice(0, 8).map((s, i) => (
+                        <tr key={i} className="border-t border-border">
+                          <td className="px-2 py-1">{s.nombre}</td>
+                          <td className="px-2 py-1">{s.especialidad}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {previewPlantilla.subcontratistas.length > 8 && <div className="px-2 py-1 text-muted-foreground">… y {previewPlantilla.subcontratistas.length - 8} más</div>}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewPlantilla(null)}>Cancelar</Button>
+            <Button onClick={confirmarImportacionPlantilla} disabled={!previewPlantilla?.subcontratistas.length}>Confirmar importación</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
