@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import type { Subcontratista, Queja } from '@/types';
-import { excelDateValue } from './utils-app';
+import { excelDateValue, todayISO } from './utils-app';
 import { buildNarrativeIncidencias, resumenAtrasoPorCausa } from './stats-engine';
 
 export interface ColumnaQueja { key: string; label: string }
@@ -75,6 +75,6 @@ export function exportQuejasExcel(
     });
   }
 
-  const fname = `incidencias_${subFiltro ? subFiltro.nombre.replace(/\s+/g, '_') : 'general'}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  const fname = `incidencias_${subFiltro ? subFiltro.nombre.replace(/\s+/g, '_') : 'general'}_${todayISO()}.xlsx`;
   XLSX.writeFile(wb, fname);
 }

@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import type { Subcontratista, FechaPrometida } from '@/types';
-import { fmtDate, fmtDateTime, excelDateValue } from './utils-app';
+import { fmtDate, fmtDateTime, excelDateValue, todayISO } from './utils-app';
 import { diasAtrasoFechaPrometida, estaAtrasada, estaCumplida } from './stats-engine';
 
 export interface ColumnaFecha { key: string; label: string }
@@ -72,6 +72,6 @@ export function exportFechasExcel(
     });
   }
 
-  const fname = `fechas_prometidas_${subFiltro ? subFiltro.nombre.replace(/\s+/g, '_') : 'general'}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  const fname = `fechas_prometidas_${subFiltro ? subFiltro.nombre.replace(/\s+/g, '_') : 'general'}_${todayISO()}.xlsx`;
   XLSX.writeFile(wb, fname);
 }

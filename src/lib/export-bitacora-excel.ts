@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import type { Subcontratista, RegistroBitacora, Taller, CicloTaller, Queja } from '@/types';
-import { fmtDate, fmtDateTime, excelDateValue } from './utils-app';
+import { fmtDate, fmtDateTime, excelDateValue, todayISO } from './utils-app';
 import { buildNarrativeBitacora, duracionCiclo, buildParrafoAnalisisBitacora, quejasDelTaller } from './stats-engine';
 
 export interface ColumnaBitacora { key: string; label: string }
@@ -127,7 +127,7 @@ export function exportBitacoraExcel(
     });
   }
 
-  const sufijo = periodoLabel ? periodoLabel.replace(/[\s/]+/g, '_') : new Date().toISOString().slice(0, 10);
+  const sufijo = periodoLabel ? periodoLabel.replace(/[\s/]+/g, '_') : todayISO();
   const fname = `bitacora_${subFiltro ? subFiltro.nombre.replace(/\s+/g, '_') : 'general'}_${sufijo}.xlsx`;
   XLSX.writeFile(wb, fname);
 }

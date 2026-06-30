@@ -1,5 +1,5 @@
 import type { Subcontratista, Queja } from '@/types';
-import { fmtDate, abrirReporteParaImprimir } from './utils-app';
+import { fmtDate, todayISO, abrirReporteParaImprimir } from './utils-app';
 import { buildNarrativeIncidencias, resumenAtrasoPorCausa } from './stats-engine';
 
 function esc(s: string): string {
@@ -135,7 +135,7 @@ export function exportQuejasPDF(quejas: Queja[], subs: Subcontratista[], subFilt
 </head>
 <body>
   <h1>${esc(title)}</h1>
-  <div class="sub">Generado el ${esc(fmtDate(new Date().toISOString().slice(0, 10)))} · ${quejas.length} incidencia(s)</div>
+  <div class="sub">Generado el ${esc(fmtDate(todayISO()))} · ${quejas.length} incidencia(s)</div>
 
   <div class="narrative-title">Análisis</div>
   <div class="narrative">${narrativeHtml(narrativa)}</div>

@@ -1,5 +1,5 @@
 import type { Subcontratista, FechaPrometida } from '@/types';
-import { fmtDate, fmtDateTime, abrirReporteParaImprimir } from './utils-app';
+import { fmtDate, fmtDateTime, todayISO, abrirReporteParaImprimir } from './utils-app';
 import { diasAtrasoFechaPrometida, estaAtrasada, estaCumplida } from './stats-engine';
 
 function esc(s: string): string {
@@ -142,7 +142,7 @@ export function exportFechasPDF(fechas: FechaPrometida[], subs: Subcontratista[]
 </head>
 <body>
   <h1>${esc(title)}</h1>
-  <div class="sub">Generado el ${esc(fmtDate(new Date().toISOString().slice(0, 10)))} · ${fechas.length} registro(s)</div>
+  <div class="sub">Generado el ${esc(fmtDate(todayISO()))} · ${fechas.length} registro(s)</div>
 
   <div class="stats">
     <div class="stat"><div class="label">TOTAL</div><div class="value">${fechas.length}</div></div>

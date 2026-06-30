@@ -1,7 +1,7 @@
 import type { Subcontratista, Stats, Queja } from '@/types';
 import type { TallerDetailExt } from './stats-engine';
 import { historialIncidenciasContratista, diasAtrasoFechaPrometida, estaCumplida, estaAtrasada } from './stats-engine';
-import { fmtDate, abrirReporteParaImprimir } from './utils-app';
+import { fmtDate, todayISO, abrirReporteParaImprimir } from './utils-app';
 
 function esc(s: string): string {
   return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -257,7 +257,7 @@ export function exportEvaluacionPDF(
 </head>
 <body>
   <h1>${esc(title)}</h1>
-  <div class="sub">Periodo: ${esc(periodoLabel)} · Generado el ${esc(fmtDate(new Date().toISOString().slice(0, 10)))}</div>
+  <div class="sub">Periodo: ${esc(periodoLabel)} · Generado el ${esc(fmtDate(todayISO()))}</div>
 
   ${parrafoAnalisis ? `<div class="narrative-title">Análisis general del periodo</div><div class="parrafo-analisis">${esc(parrafoAnalisis)}</div>` : ''}
 

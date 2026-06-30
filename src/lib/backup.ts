@@ -1,4 +1,5 @@
 import { dbGet, dbSet } from './storage';
+import { todayISO } from './utils-app';
 
 /** Todas las claves de almacenamiento que usa la app. Si se agrega una nueva en el futuro, debe añadirse aquí también. */
 export const STORAGE_KEYS = [
@@ -36,7 +37,7 @@ export async function descargarRespaldo() {
   const blob = new Blob([JSON.stringify(respaldo, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const fecha = new Date().toISOString().slice(0, 10);
+  const fecha = todayISO();
   a.href = url;
   a.download = `respaldo_subcontratistas_${fecha}.json`;
   document.body.appendChild(a);

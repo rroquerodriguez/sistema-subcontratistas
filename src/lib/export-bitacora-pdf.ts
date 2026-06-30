@@ -1,5 +1,5 @@
 import type { Subcontratista, RegistroBitacora, Taller, CicloTaller, Queja } from '@/types';
-import { fmtDate, fmtHora, soloFecha, abrirReporteParaImprimir } from './utils-app';
+import { fmtDate, fmtHora, soloFecha, todayISO, abrirReporteParaImprimir } from './utils-app';
 import { buildNarrativeBitacora, duracionCiclo, quejasDelTaller } from './stats-engine';
 
 function esc(s: string): string {
@@ -179,7 +179,7 @@ export function exportBitacoraPDF(
 </head>
 <body>
   <h1>${esc(title)}</h1>
-  <div class="sub">${periodoLabel ? `Periodo: ${esc(periodoLabel)} · ` : ''}Generado el ${esc(fmtDate(new Date().toISOString().slice(0, 10)))} · ${registros.length} registro(s)</div>
+  <div class="sub">${periodoLabel ? `Periodo: ${esc(periodoLabel)} · ` : ''}Generado el ${esc(fmtDate(todayISO()))} · ${registros.length} registro(s)</div>
 
   ${parrafoAnalisis ? `<div class="narrative-title">Análisis general del periodo</div><div class="parrafo-analisis">${esc(parrafoAnalisis)}</div>` : ''}
 

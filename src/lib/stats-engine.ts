@@ -79,11 +79,12 @@ export function computeStats(
 
   const pctLiberado = totalTalleres ? Math.round((liberados / totalTalleres) * 100) : 0;
   const pctEntregado = liberados ? Math.round((entregados / liberados) * 100) : 0;
+  const pctCumplimiento = totalTalleres ? Math.round((entregados / totalTalleres) * 100) : 0;
 
   return {
     totalTalleres, liberados, noLiberados, pendientesVal, entregados, sinEntregar, promedioDias,
     llegaron, noLlegaron, causaNuestra, causaSub, quejasForSub, quejasCount: quejasForSub.length,
-    pctLiberado, pctEntregado,
+    pctLiberado, pctEntregado, pctCumplimiento,
   };
 }
 
@@ -448,8 +449,8 @@ export function buildParrafoAnalisisEvaluacion(sub: Subcontratista | null, stats
     return `No se registró actividad planificada para ${nombre} durante ${periodoLabel}. Sin frentes de trabajo asignados, no es posible emitir un índice de cumplimiento para este periodo; se recomienda confirmar si la ausencia de planificación obedece a una pausa programada o a un vacío de coordinación que deba corregirse.`;
   }
 
-  const calif = stats.pctLiberado >= 90 && stats.pctEntregado >= 90 ? 'un desempeño sobresaliente, dentro de los parámetros esperados de un proyecto bajo control'
-    : stats.pctLiberado >= 75 && stats.pctEntregado >= 75 ? 'un desempeño aceptable, aunque con margen de mejora antes de considerarse dentro de rango óptimo'
+  const calif = stats.pctLiberado >= 90 && stats.pctCumplimiento >= 90 ? 'un desempeño sobresaliente, dentro de los parámetros esperados de un proyecto bajo control'
+    : stats.pctLiberado >= 75 && stats.pctCumplimiento >= 75 ? 'un desempeño aceptable, aunque con margen de mejora antes de considerarse dentro de rango óptimo'
     : 'un desempeño por debajo del estándar aceptable, que amerita intervención directa de supervisión y seguimiento diario';
 
   const tiempoTxt = stats.promedioDias !== null
@@ -468,7 +469,7 @@ export function buildParrafoAnalisisEvaluacion(sub: Subcontratista | null, stats
     ? ` La causa raíz predominante de los incumplimientos de asistencia fue del subcontratista (${stats.causaSub} de ${stats.causaNuestra + stats.causaSub} casos), lo que sí amerita seguimiento de capacidad y compromiso contractual.`
     : '';
 
-  return `Durante ${periodoLabel}, ${nombre} tuvo ${stats.totalTalleres} frente(s) de trabajo planificado(s), con ${stats.pctLiberado}% liberado para trabajar y ${stats.pctEntregado}% de entrega sobre lo liberado, ${tiempoTxt}. En conjunto, el indicador refleja ${calif}.${incidenciasTxt}${causasTxt}`;
+  return `Durante ${periodoLabel}, ${nombre} tuvo ${stats.totalTalleres} frente(s) de trabajo planificado(s), con ${stats.pctLiberado}% liberado para trabajar y ${stats.pctCumplimiento}% de cumplimiento real (entregado sobre el total planificado), ${tiempoTxt}. En conjunto, el indicador refleja ${calif}.${incidenciasTxt}${causasTxt}`;
 }
 
 /** Párrafo (no bullets) que interpreta los datos de bitácora del periodo, con criterio de control de obra */
