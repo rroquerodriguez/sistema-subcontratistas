@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { fmtDate, fmtHora, soloFecha, todayISO } from '@/lib/utils-app';
 import { duracionCiclo } from '@/lib/stats-engine';
+import { useUsuarioActual } from '@/lib/usuario-actual-context';
 import type { CicloTaller, EstadoCicloTaller, RegistroBitacora } from '@/types';
 
 interface CicloTallerPanelProps {
@@ -15,6 +16,7 @@ interface CicloTallerPanelProps {
   onRegistroDiario?: (partial: Pick<RegistroBitacora, 'llego' | 'completo' | 'notas' | 'motivo'>) => void;
   /** Registro diario de hoy para este taller (si ya existe) */
   registroHoy?: RegistroBitacora;
+  soloLectura?: boolean;
 }
 
 const ESTADO_BADGE: Record<EstadoCicloTaller, 'secondary' | 'warning' | 'success'> = {
@@ -28,7 +30,8 @@ function estadoARegistro(estado: EstadoCicloTaller): 'SIN INICIAR' | 'EN PROCESO
   return estado;
 }
 
-export function CicloTallerPanel({ ciclo, onChange, onRegistroDiario, registroHoy }: CicloTallerPanelProps) {
+export function CicloTallerPanel({ ciclo, onChange, onRegistroDiario, registroHoy, soloLectura }: CicloTallerPanelProps) {
+  const usuario = useUsuarioActual();
   const [comentario, setComentario] = useState('');
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editingText, setEditingText] = useState('');
@@ -70,7 +73,7 @@ export function CicloTallerPanel({ ciclo, onChange, onRegistroDiario, registroHo
     if (!comentario.trim()) return;
     onChange({
       ...ciclo,
-      comentarios: [...ciclo.comentarios, { fecha: new Date().toISOString(), texto: comentario.trim() }],
+      comentarios: [...ciclo.comentarios, { fecha: new Date().toISOString(), texto: comentario.trim(), autor: usuario.nombre, autorId: usuario.id }],
     });
     setComentario('');
   };
@@ -108,8 +111,8 @@ export function CicloTallerPanel({ ciclo, onChange, onRegistroDiario, registroHo
         <div>
           <div className="mb-1 text-[11px] text-muted-foreground">¿Personal asignado por el subcontratista?</div>
           <div className="flex gap-1">
-            <Button size="sm" type="button" variant={llegHoy === 'SI' ? 'default' : 'outline'} className="h-7 px-2 text-xs" onClick={() => setLlego('SI')}>SI</Button>
-            <Button size="sm" type="button" variant={llegHoy === 'NO' ? 'destructive' : 'outline'} className="h-7 px-2 text-xs" onClick={() => setLlego('NO')}>NO</Button>
+            <Button size="sm" type="button" variant={llegHoy === 'SI' ? 'default' : 'outline'} className="h-7 px-2 text-xs" onClick={() => setLlego('SI')} disabled={soloLectura}>SI</Button>
+            <Button size="sm" type="button" variant={llegHoy === 'NO' ? 'destructive' : 'outline'} className="h-7 px-2 text-xs" onClick={() => setLlego('NO')} disabled={soloLectura}>NO</Button>
           </div>
         </div>
       </div>
@@ -121,14 +124,14 @@ export function CicloTallerPanel({ ciclo, onChange, onRegistroDiario, registroHo
           <Badge variant={ESTADO_BADGE[ciclo.estado]}>{ciclo.estado}</Badge>
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {ciclo.estado === 'NO INICIADO' && <Button size="sm" onClick={iniciar}>Iniciar</Button>}
+          {ciclo.estado === 'NO INICIADO' && <Button size="sm" onClick={iniciar} disabled={soloLectura}>Iniciar</Button>}
           {ciclo.estado === 'EN PROCESO' && <>
-            <Button size="sm" onClick={completar}>Completar</Button>
-            <Button size="sm" variant="outline" onClick={resetear}>Revertir a No iniciado</Button>
+            <Button size="sm" onClick={completar} disabled={soloLectura}>Completar</Button>
+            <Button size="sm" variant="outline" onClick={resetear} disabled={soloLectura}>Revertir a No iniciado</Button>
           </>}
           {ciclo.estado === 'COMPLETADO' && <>
-            <Button size="sm" variant="outline" onClick={reabrir}>Reabrir</Button>
-            <Button size="sm" variant="outline" onClick={resetear}>Resetear</Button>
+            <Button size="sm" variant="outline" onClick={reabrir} disabled={soloLectura}>Reabrir</Button>
+            <Button size="sm" variant="outline" onClick={resetear} disabled={soloLectura}>Resetear</Button>
           </>}
         </div>
       </div>
@@ -145,31 +148,35 @@ export function CicloTallerPanel({ ciclo, onChange, onRegistroDiario, registroHo
       {ciclo.estado !== 'NO INICIADO' && (
         <div>
           <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Comentarios de avance</div>
-          <div className="mb-1.5 flex gap-2">
-            <Textarea
-              rows={2} placeholder="Agregar comentario de avance..."
-              value={comentario} onChange={(e) => setComentario(e.target.value)} className="text-[12.5px]"
-            />
-            <Button size="sm" className="h-auto" onClick={agregarComentario} disabled={!comentario.trim()}>Agregar</Button>
-          </div>
+          {!soloLectura && (
+            <div className="mb-1.5 flex gap-2">
+              <Textarea
+                rows={2} placeholder="Agregar comentario de avance..."
+                value={comentario} onChange={(e) => setComentario(e.target.value)} className="text-[12.5px]"
+              />
+              <Button size="sm" className="h-auto" onClick={agregarComentario} disabled={!comentario.trim()}>Agregar</Button>
+            </div>
+          )}
           {gruposPorFecha.length > 0 && (
             <div className="space-y-3">
               {gruposPorFecha.map(({ dia, items }) => (
                 <div key={dia}>
                   <div className="mb-1 text-[11px] font-semibold text-foreground">{fmtDate(dia)}{dia === todayISO() ? ' (hoy)' : ''}</div>
                   <div className="space-y-1.5">
-                    {items.map(({ fecha, texto, idx }) => (
+                    {items.map(({ fecha, texto, idx, autor }) => (
                       <div key={idx} className="rounded-md bg-muted/40 px-2.5 py-1.5 text-[12px]">
                         <div className="mb-0.5 flex items-center justify-between gap-1">
-                          <span className="text-[10.5px] text-muted-foreground">{fmtHora(fecha)}</span>
-                          <div className="flex gap-1">
-                            {editingIdx !== idx && (
-                              <>
-                                <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => startEdit(idx, texto)} aria-label="Editar"><Pencil size={11} /></Button>
-                                <Button size="icon" variant="ghost" className="h-5 w-5 text-destructive" onClick={() => deleteComentario(idx)} aria-label="Eliminar"><Trash2 size={11} /></Button>
-                              </>
-                            )}
-                          </div>
+                          <span className="text-[10.5px] text-muted-foreground">{fmtHora(fecha)}{autor ? ` · ${autor}` : ''}</span>
+                          {!soloLectura && (
+                            <div className="flex gap-1">
+                              {editingIdx !== idx && (
+                                <>
+                                  <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => startEdit(idx, texto)} aria-label="Editar"><Pencil size={11} /></Button>
+                                  <Button size="icon" variant="ghost" className="h-5 w-5 text-destructive" onClick={() => deleteComentario(idx)} aria-label="Eliminar"><Trash2 size={11} /></Button>
+                                </>
+                              )}
+                            </div>
+                          )}
                         </div>
                         {editingIdx === idx ? (
                           <div className="flex gap-1">
