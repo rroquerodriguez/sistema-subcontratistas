@@ -144,7 +144,7 @@ export function EvaluacionSemanal({ subs, talleres: talleresTodos, validaciones,
           <div className="mb-5 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
             <MetricCard label="Talleres" value={stats.totalTalleres} icon={CalendarClock} colorBg="#D3D3D3" colorFg="#36454F" />
             <MetricCard label="% liberado para trabajar" value={`${stats.pctLiberado}%`} icon={LockOpen} colorBg="hsl(142 71% 92%)" colorFg="hsl(142 71% 30%)" />
-            <MetricCard label="% entregado" value={`${stats.pctEntregado}%`} icon={Package} colorBg="hsl(38 92% 92%)" colorFg="hsl(38 92% 35%)" />
+            <MetricCard label="% cumplimiento (entregado/planificado)" value={`${stats.pctCumplimiento}%`} icon={Package} colorBg="hsl(38 92% 92%)" colorFg="hsl(38 92% 35%)" />
             <MetricCard label="Prom. días" value={stats.promedioDias ?? '—'} icon={Clock3} colorBg="hsl(204 19% 90%)" colorFg="#36454F" />
           </div>
 
@@ -214,7 +214,7 @@ export function EvaluacionSemanal({ subs, talleres: talleresTodos, validaciones,
                           <div className="flex flex-wrap items-center gap-3 text-[12px]">
                             <span>Talleres: <strong>{gStats.totalTalleres}</strong></span>
                             <span>% liberado para trabajar: <strong className={gStats.pctLiberado >= 90 ? 'text-success' : gStats.pctLiberado >= 70 ? 'text-warning' : 'text-destructive'}>{gStats.pctLiberado}%</strong></span>
-                            <span>% entregado: <strong>{gStats.pctEntregado}%</strong></span>
+                            <span>% cumplimiento: <strong className={gStats.pctCumplimiento >= 90 ? 'text-success' : gStats.pctCumplimiento >= 70 ? 'text-warning' : 'text-destructive'}>{gStats.pctCumplimiento}%</strong></span>
                             <span>Prom. días: <strong>{gStats.promedioDias ?? '—'}</strong></span>
                             {gHistorial.length > 0 && <Badge variant="secondary">{gHistorial.length} incid. histórico</Badge>}
                             {gFechas.filter((f) => estaAtrasada(f) && !estaCumplida(f)).length > 0 && (
