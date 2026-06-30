@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Plus, Pencil, Trash2, FileSpreadsheet, FileText, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,11 @@ import { ProjectFilter } from '@/components/shared/project-filter';
 import { CollapsibleGroup } from '@/components/shared/collapsible-group';
 import { SortableTableHead } from '@/components/shared/sortable-table-head';
 import { useSortableFilterableTable, type ColumnConfig } from '@/lib/use-sortable-table';
+import { UnidadSearchBox, unidadMatchesSearch } from '@/components/shared/unidad-search-box';
+import { AgrupacionConfigButton, type OpcionAgrupacion } from '@/components/shared/agrupacion-config-button';
+import { ArbolAgrupado } from '@/components/shared/arbol-agrupado';
+import { construirArbolAgrupado, type DimensionAgrupacion } from '@/lib/agrupacion-multinivel';
+import { ExportarButton } from '@/components/shared/exportar-button';
 import { BitacoraForm } from './bitacora-form';
 import { dbSet } from '@/lib/storage';
 import { fmtDate, uid, todayISO, mesKeyActual, mesLabel, semanasDelMes, weekRangeLabel, mondayOf } from '@/lib/utils-app';
@@ -39,6 +44,12 @@ interface BitacoraDiariaProps {
   semanaActual: string;
   showToast: (msg: string) => void;
 }
+
+const OPCIONES_AGRUPACION_BITACORA: OpcionAgrupacion[] = [
+  { key: 'contratista', label: 'Subcontratista' },
+  { key: 'estadoTrabajo', label: 'Estado del trabajo' },
+  { key: 'personalAsignado', label: 'Personal asignado' },
+];
 
 function RegistrosTabla({
   items, tallerLabel, onEdit, onRemove, onViewPhotos,
@@ -104,6 +115,9 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
   const [viewPhotos, setViewPhotos] = useState<string[] | null>(null);
   const [filtroSub, setFiltroSub] = useState('todos');
   const [filtroProyecto, setFiltroProyecto] = useState('todos');
+  const [buscadorUnidad, setBuscadorUnidad] = useState('');
+  const [nivelesAgrupacion, setNivelesAgrupacion] = useState<string[]>([]);
+  const [vistaRegistros, setVistaRegistros] = useState<'contratista' | 'personalizada'>('contratista');
   const [periodo, setPeriodo] = useState<PeriodoBitacora>('dia');
   const [diaSeleccionado, setDiaSeleccionado] = useState(todayISO());
   const [semanaSeleccionada, setSemanaSeleccionada] = useState(semanaActual);
@@ -176,6 +190,12 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
   else filtered = filtered.filter((b) => semanasDelMesSeleccionado.includes(mondayOf(b.fecha)));
   filtered = filtroSub === 'todos' ? filtered : filtered.filter((b) => talleres.find((t) => t.id === b.tallerId)?.subcontratistaId === filtroSub);
   filtered = filtroProyecto === 'todos' ? filtered : filtered.filter((b) => talleres.find((t) => t.id === b.tallerId)?.proyecto === filtroProyecto);
+  if (buscadorUnidad.trim()) {
+    filtered = filtered.filter((b) => {
+      const t = talleres.find((x) => x.id === b.tallerId);
+      return t && unidadMatchesSearch(t.edificio, t.esGeneral ? 'general' : t.unidad, buscadorUnidad);
+    });
+  }
   const sorted = [...filtered].sort((a, b) => b.fecha.localeCompare(a.fecha));
 
   const periodoLabel = periodo === 'dia' ? `el día ${fmtDate(diaSeleccionado)}`
@@ -194,6 +214,16 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
     const ids = [...new Set(sorted.map((b) => talleres.find((t) => t.id === b.tallerId)?.subcontratistaId).filter(Boolean))] as string[];
     return ids.map((id) => ({ id, nombre: subName(id), items: sorted.filter((b) => talleres.find((t) => t.id === b.tallerId)?.subcontratistaId === id) }));
   }, [sorted, talleres, subs]);
+
+  const dimensionesDisponibles: Record<string, DimensionAgrupacion<RegistroBitacora>> = {
+    contratista: { key: 'contratista', label: 'Subcontratista', getValue: (b) => { const t = talleres.find((x) => x.id === b.tallerId); return t ? subName(t.subcontratistaId) : '—'; } },
+    estadoTrabajo: { key: 'estadoTrabajo', label: 'Estado del trabajo', getValue: (b) => b.completo || 'SIN REGISTRO' },
+    personalAsignado: { key: 'personalAsignado', label: 'Personal asignado', getValue: (b) => (b.llego === 'SI' ? 'Asignado' : 'Sin personal') },
+  };
+  const arbolPersonalizado = useMemo(() => {
+    const dims = nivelesAgrupacion.map((k) => dimensionesDisponibles[k]).filter(Boolean);
+    return construirArbolAgrupado(sorted, dims);
+  }, [sorted, nivelesAgrupacion]);
 
   const talleresSemana = talleres.filter((t) =>
     t.semana === semanaActual && (filtroSub === 'todos' || t.subcontratistaId === filtroSub) && (filtroProyecto === 'todos' || t.proyecto === filtroProyecto)
@@ -298,41 +328,51 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
                   {periodo === 'semana' && <WeekCalendarPicker semanaActual={semanaSeleccionada} onChange={setSemanaSeleccionada} />}
                   {periodo === 'mes' && <MonthPicker mesKey={mesSeleccionado} onChange={setMesSeleccionado} />}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <ColumnSelector seleccionadas={columnasExport} onChange={setColumnasExport} columnas={COLUMNAS_BITACORA} />
-                  <Button
-                    variant="outline"
-                    onClick={() => exportBitacoraExcel(filtered, talleres, subs, filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null, ciclos, periodoLabelCorto, quejas, columnasExport)}
-                  >
-                    <FileSpreadsheet size={14} />Excel
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => exportBitacoraPDF(filtered, talleres, subs, filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null, ciclos, periodoLabelCorto, parrafoAnalisis, quejas)}
-                  >
-                    <FileText size={14} />PDF
-                  </Button>
+                  <ExportarButton
+                    onExcel={() => exportBitacoraExcel(filtered, talleres, subs, filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null, ciclos, periodoLabelCorto, quejas, columnasExport)}
+                    onPDF={() => exportBitacoraPDF(filtered, talleres, subs, filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null, ciclos, periodoLabelCorto, parrafoAnalisis, quejas)}
+                  />
                 </div>
+              </div>
+
+              <div className="mb-3.5 flex flex-wrap items-center gap-2">
+                <Button size="sm" variant={vistaRegistros === 'contratista' ? 'default' : 'outline'} onClick={() => setVistaRegistros('contratista')}>Por contratista</Button>
+                <Button size="sm" variant={vistaRegistros === 'personalizada' ? 'default' : 'outline'} onClick={() => setVistaRegistros('personalizada')}>Agrupación personalizada</Button>
+                <UnidadSearchBox value={buscadorUnidad} onChange={setBuscadorUnidad} />
+                {vistaRegistros === 'personalizada' && (
+                  <AgrupacionConfigButton opciones={OPCIONES_AGRUPACION_BITACORA} seleccion={nivelesAgrupacion} onChange={setNivelesAgrupacion} />
+                )}
               </div>
 
               <div className="mb-3.5 rounded-lg bg-muted/30 px-3.5 py-2.5 text-[12.5px] leading-relaxed">
                 {parrafoAnalisis}
               </div>
 
-              {sortedPorContratista.length ? sortedPorContratista.map((g) => (
-                <CollapsibleGroup
-                  key={g.id}
-                  header={
-                    <div className="flex items-center gap-2 text-sm font-medium">
-                      <SubAvatar name={g.nombre} id={g.id} />{g.nombre}
-                      <Badge variant="secondary">{g.items.length} registro(s)</Badge>
-                    </div>
-                  }
-                >
-                  <RegistrosTabla items={g.items} tallerLabel={tallerLabel} onEdit={setEditing} onRemove={remove} onViewPhotos={setViewPhotos} />
-                </CollapsibleGroup>
-              )) : (
-                <div className="py-10 text-center text-sm text-muted-foreground">No hay registros de bitácora en este periodo.</div>
+              {vistaRegistros === 'contratista' && (
+                sortedPorContratista.length ? sortedPorContratista.map((g) => (
+                  <CollapsibleGroup
+                    key={g.id}
+                    header={
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <SubAvatar name={g.nombre} id={g.id} />{g.nombre}
+                        <Badge variant="secondary">{g.items.length} registro(s)</Badge>
+                      </div>
+                    }
+                  >
+                    <RegistrosTabla items={g.items} tallerLabel={tallerLabel} onEdit={setEditing} onRemove={remove} onViewPhotos={setViewPhotos} />
+                  </CollapsibleGroup>
+                )) : (
+                  <div className="py-10 text-center text-sm text-muted-foreground">No hay registros de bitácora en este periodo.</div>
+                )
+              )}
+
+              {vistaRegistros === 'personalizada' && (
+                <ArbolAgrupado
+                  nodos={arbolPersonalizado}
+                  renderHoja={(items) => <RegistrosTabla items={items} tallerLabel={tallerLabel} onEdit={setEditing} onRemove={remove} onViewPhotos={setViewPhotos} />}
+                />
               )}
             </TabsContent>
           </Tabs>
