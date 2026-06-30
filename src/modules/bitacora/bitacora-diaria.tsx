@@ -24,11 +24,13 @@ import { construirArbolAgrupado, type DimensionAgrupacion } from '@/lib/agrupaci
 import { ExportarButton } from '@/components/shared/exportar-button';
 import { BitacoraForm } from './bitacora-form';
 import { dbSet } from '@/lib/storage';
-import { fmtDate, uid, todayISO, mesKeyActual, mesLabel, semanasDelMes, weekRangeLabel, mondayOf } from '@/lib/utils-app';
+import { fmtDate, fmtDateTime, uid, todayISO, mesKeyActual, mesLabel, semanasDelMes, weekRangeLabel, mondayOf } from '@/lib/utils-app';
 import { buildParrafoAnalisisBitacora, quejasDelTaller } from '@/lib/stats-engine';
 import { exportBitacoraExcel, COLUMNAS_BITACORA, COLUMNAS_BITACORA_DEFAULT } from '@/lib/export-bitacora-excel';
 import { exportBitacoraPDF } from '@/lib/export-bitacora-pdf';
 import { ColumnSelector } from '@/components/shared/column-selector';
+import { useUsuarioActual } from '@/lib/usuario-actual-context';
+import { puedeEditar } from '@/lib/auth';
 import type { Subcontratista, Taller, RegistroBitacora, CicloTaller, Queja } from '@/types';
 
 type PeriodoBitacora = 'dia' | 'semana' | 'mes';
@@ -52,13 +54,14 @@ const OPCIONES_AGRUPACION_BITACORA: OpcionAgrupacion[] = [
 ];
 
 function RegistrosTabla({
-  items, tallerLabel, onEdit, onRemove, onViewPhotos,
+  items, tallerLabel, onEdit, onRemove, onViewPhotos, soloLectura,
 }: {
   items: RegistroBitacora[];
   tallerLabel: (id: string) => string;
   onEdit: (b: RegistroBitacora) => void;
   onRemove: (id: string) => void;
   onViewPhotos: (fotos: string[]) => void;
+  soloLectura?: boolean;
 }) {
   const columnas: ColumnConfig<RegistroBitacora>[] = [
     { key: 'fecha', getValue: (b) => b.fecha },
@@ -67,6 +70,7 @@ function RegistrosTabla({
     { key: 'completo', getValue: (b) => b.completo },
     { key: 'motivo', getValue: (b) => b.motivo },
     { key: 'responsable', getValue: (b) => b.responsable },
+    { key: 'registradoPor', getValue: (b) => b.registradoPor || '' },
   ];
   const { rows, sortKey, sortDir, toggleSort, filters, setFilter } = useSortableFilterableTable(items, columnas);
 
@@ -80,6 +84,7 @@ function RegistrosTabla({
           <SortableTableHead label="Estado del trabajo" columnKey="completo" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterable={false} />
           <SortableTableHead label="Motivo" columnKey="motivo" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.motivo} onFilterChange={setFilter} />
           <SortableTableHead label="Responsable" columnKey="responsable" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.responsable} onFilterChange={setFilter} />
+          <SortableTableHead label="Registrado por" columnKey="registradoPor" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.registradoPor} onFilterChange={setFilter} />
           <TableHead>Fotos</TableHead><TableHead />
         </TableRow>
       </TableHeader>
@@ -97,10 +102,13 @@ function RegistrosTabla({
             </TableCell>
             <TableCell>{b.motivo || '—'}</TableCell>
             <TableCell>{b.responsable || '—'}</TableCell>
+            <TableCell className="text-[11.5px] text-muted-foreground" title={b.registradoEn ? fmtDateTime(b.registradoEn) : ''}>
+              {b.registradoPor || '—'}
+            </TableCell>
             <TableCell>{b.fotos.length ? <Button size="sm" variant="outline" onClick={() => onViewPhotos(b.fotos)}>{b.fotos.length} foto(s)</Button> : '—'}</TableCell>
             <TableCell className="whitespace-nowrap">
-              <Button size="icon" variant="outline" className="mr-1.5 h-8 w-8" onClick={() => onEdit(b)} aria-label="Editar"><Pencil size={14} /></Button>
-              <Button size="icon" variant="outline" className="h-8 w-8 text-destructive" onClick={() => onRemove(b.id)} aria-label="Eliminar"><Trash2 size={14} /></Button>
+              <Button size="icon" variant="outline" className="mr-1.5 h-8 w-8" onClick={() => onEdit(b)} aria-label="Editar" disabled={soloLectura}><Pencil size={14} /></Button>
+              <Button size="icon" variant="outline" className="h-8 w-8 text-destructive" onClick={() => onRemove(b.id)} aria-label="Eliminar" disabled={soloLectura}><Trash2 size={14} /></Button>
             </TableCell>
           </TableRow>
         ))}
@@ -110,6 +118,8 @@ function RegistrosTabla({
 }
 
 export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, setCiclos, quejas, semanaActual, showToast }: BitacoraDiariaProps) {
+  const usuario = useUsuarioActual();
+  const soloLectura = !puedeEditar(usuario.perfil, 'bitacora');
   const [showNew, setShowNew] = useState(false);
   const [editing, setEditing] = useState<RegistroBitacora | null>(null);
   const [viewPhotos, setViewPhotos] = useState<string[] | null>(null);
@@ -165,7 +175,8 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
 
   const save = async (b: RegistroBitacora) => {
     const exists = bitacora.find((x) => x.id === b.id);
-    const next = exists ? bitacora.map((x) => (x.id === b.id ? b : x)) : [...bitacora, b];
+    const registro = exists ? b : { ...b, registradoPor: usuario.nombre, registradoPorId: usuario.id, registradoEn: new Date().toISOString() };
+    const next = exists ? bitacora.map((x) => (x.id === b.id ? registro : x)) : [...bitacora, registro];
     setBitacora(next);
     await dbSet('bitacora', next);
     setShowNew(false);
@@ -252,7 +263,7 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={() => setShowNew(true)}><Plus size={14} />Nuevo registro</Button>
+            <Button onClick={() => setShowNew(true)} disabled={soloLectura}><Plus size={14} />Nuevo registro</Button>
           </div>
 
           <Tabs defaultValue="avance">
@@ -306,6 +317,7 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
                               onChange={saveCiclo}
                               registroHoy={registroHoyDe(t.id)}
                               onRegistroDiario={(partial) => upsertRegistroDiario(t.id, partial)}
+                              soloLectura={soloLectura}
                             />
                           </div>
                         );
@@ -361,7 +373,7 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
                       </div>
                     }
                   >
-                    <RegistrosTabla items={g.items} tallerLabel={tallerLabel} onEdit={setEditing} onRemove={remove} onViewPhotos={setViewPhotos} />
+                    <RegistrosTabla items={g.items} tallerLabel={tallerLabel} onEdit={setEditing} onRemove={remove} onViewPhotos={setViewPhotos} soloLectura={soloLectura} />
                   </CollapsibleGroup>
                 )) : (
                   <div className="py-10 text-center text-sm text-muted-foreground">No hay registros de bitácora en este periodo.</div>
@@ -371,7 +383,7 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
               {vistaRegistros === 'personalizada' && (
                 <ArbolAgrupado
                   nodos={arbolPersonalizado}
-                  renderHoja={(items) => <RegistrosTabla items={items} tallerLabel={tallerLabel} onEdit={setEditing} onRemove={remove} onViewPhotos={setViewPhotos} />}
+                  renderHoja={(items) => <RegistrosTabla items={items} tallerLabel={tallerLabel} onEdit={setEditing} onRemove={remove} onViewPhotos={setViewPhotos} soloLectura={soloLectura} />}
                 />
               )}
             </TabsContent>
