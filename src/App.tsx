@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import { Sidebar } from '@/components/shared/sidebar';
+import { LoginPage } from '@/modules/auth/login-page';
 import { Dashboard } from '@/modules/dashboard/dashboard';
 import { MaestroSubcontratistas } from '@/modules/maestro/maestro-subcontratistas';
 import { PlanificacionSemanal } from '@/modules/planificacion/planificacion-semanal';
@@ -12,13 +13,19 @@ import { EvaluacionSemanal } from '@/modules/evaluacion/evaluacion-semanal';
 import { FechasPrometidas } from '@/modules/fechas/fechas-prometidas';
 import { CatalogoTalleres } from '@/modules/catalogo/catalogo-talleres';
 import { SettingsPage } from '@/modules/settings/settings-page';
-import { dbGet, dbSet } from '@/lib/storage';
+import { dbGet, dbSet, supabase } from '@/lib/storage';
+import { cargarSesionActual, modulosVisibles, listarPerfiles, type SesionUsuario } from '@/lib/auth';
+import { UsuarioActualContext } from '@/lib/usuario-actual-context';
 import { SEED_SUBCONTRATISTAS } from '@/lib/seed-data';
 import { mondayOf, todayISO } from '@/lib/utils-app';
-import type { Subcontratista, Taller, Validacion, Entrega, RegistroBitacora, Queja, CicloTaller, FechaPrometida, TallerCatalogo, UnidadProyecto, ArchivoImportadoMeta, TabId } from '@/types';
+import type { Subcontratista, Taller, Validacion, Entrega, RegistroBitacora, Queja, CicloTaller, FechaPrometida, TallerCatalogo, UnidadProyecto, ArchivoImportadoMeta, Perfil, TabId } from '@/types';
+
+const ORDEN_MODULOS: TabId[] = ['dashboard', 'maestro', 'catalogo', 'planificacion', 'validacion', 'bitacora', 'quejas', 'fechas', 'evaluacion', 'settings'];
 
 function App() {
   const [loaded, setLoaded] = useState(false);
+  const [sesion, setSesion] = useState<SesionUsuario | null>(null);
+  const [verificandoSesion, setVerificandoSesion] = useState(true);
   const [tab, setTab] = useState<TabId>('dashboard');
   const [semanaActual, setSemanaActual] = useState(mondayOf(todayISO()));
 
@@ -33,6 +40,7 @@ function App() {
   const [catalogo, setCatalogo] = useState<TallerCatalogo[]>([]);
   const [unidadesProyecto, setUnidadesProyecto] = useState<UnidadProyecto[]>([]);
   const [archivoMeta, setArchivoMeta] = useState<ArchivoImportadoMeta | null>(null);
+  const [perfiles, setPerfiles] = useState<Perfil[]>([]);
   const [tallerAbrirId, setTallerAbrirId] = useState<string | null>(null);
 
   const goToTaller = useCallback((tallerId: string) => {
@@ -41,7 +49,7 @@ function App() {
   }, []);
 
   const cargarTodo = useCallback(async () => {
-    const [s, t, v, e, b, q, c, f, cat, uni, meta] = await Promise.all([
+    const [s, t, v, e, b, q, c, f, cat, uni, meta, perfs] = await Promise.all([
       dbGet<Subcontratista[]>('subcontratistas', []),
       dbGet<Taller[]>('talleres', []),
       dbGet<Validacion[]>('validaciones', []),
@@ -53,6 +61,7 @@ function App() {
       dbGet<TallerCatalogo[]>('catalogo_talleres', []),
       dbGet<UnidadProyecto[]>('unidades_proyecto', []),
       dbGet<ArchivoImportadoMeta | null>('unidades_proyecto_meta', null),
+      listarPerfiles(),
     ]);
     let finalSubs = s;
     if (!s.length) {
@@ -70,14 +79,50 @@ function App() {
     setCatalogo(cat);
     setUnidadesProyecto(uni);
     setArchivoMeta(meta);
+    setPerfiles(perfs);
     setLoaded(true);
   }, []);
 
   useEffect(() => {
-    cargarTodo();
-  }, [cargarTodo]);
+    let activo = true;
+
+    const verificar = async () => {
+      const s = await cargarSesionActual();
+      if (activo) {
+        setSesion(s);
+        setVerificandoSesion(false);
+      }
+    };
+    verificar();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(async () => {
+      const s = await cargarSesionActual();
+      if (activo) setSesion(s);
+    });
+
+    return () => {
+      activo = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (sesion) cargarTodo();
+  }, [sesion, cargarTodo]);
 
   const showToast = (msg: string) => toast(msg);
+
+  if (verificandoSesion) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background text-muted-foreground">
+        Verificando sesión...
+      </div>
+    );
+  }
+
+  if (!sesion) {
+    return <LoginPage />;
+  }
 
   if (!loaded) {
     return (
@@ -87,31 +132,40 @@ function App() {
     );
   }
 
+  const perfil = sesion.perfil;
+  const tabsVisibles = modulosVisibles(perfil, ORDEN_MODULOS);
+  // Si el usuario quedó parado en una pestaña a la que ya no tiene acceso (cambio de permisos), lo regresamos al primer módulo visible
+  const tabActiva = tabsVisibles.includes(tab) ? tab : (tabsVisibles[0] || 'dashboard');
+
   return (
+    <UsuarioActualContext.Provider value={{
+      id: sesion.userId, nombre: perfil.nombre, perfil, perfiles,
+      nombrePorId: (id) => perfiles.find((p) => p.id === id)?.nombre || '—',
+    }}>
     <div className="flex min-h-screen flex-col bg-background md:flex-row">
-      <Sidebar tab={tab} onChange={setTab} />
+      <Sidebar tab={tabActiva} onChange={setTab} tabsVisibles={tabsVisibles} usuarioNombre={perfil.nombre} />
       <main className="flex-1 overflow-x-hidden p-4 md:p-6">
         <div className="mx-auto max-w-[1800px]">
-          {tab === 'dashboard' && (
+          {tabActiva === 'dashboard' && (
             <Dashboard
               subs={subs} talleres={talleres} validaciones={validaciones} entregas={entregas} bitacora={bitacora}
               quejas={quejas} fechas={fechas} semanaActual={semanaActual} goTo={setTab}
             />
           )}
-          {tab === 'settings' && (
+          {tabActiva === 'settings' && (
             <SettingsPage
               unidadesProyecto={unidadesProyecto} setUnidadesProyecto={setUnidadesProyecto}
               archivoMeta={archivoMeta} setArchivoMeta={setArchivoMeta}
-              onRestored={cargarTodo} showToast={showToast}
+              onRestored={cargarTodo} showToast={showToast} miPerfil={perfil}
             />
           )}
-          {tab === 'maestro' && (
+          {tabActiva === 'maestro' && (
             <MaestroSubcontratistas subs={subs} setSubs={setSubs} talleres={talleres} quejas={quejas} showToast={showToast} />
           )}
-          {tab === 'catalogo' && (
+          {tabActiva === 'catalogo' && (
             <CatalogoTalleres subs={subs} catalogo={catalogo} setCatalogo={setCatalogo} showToast={showToast} />
           )}
-          {tab === 'planificacion' && (
+          {tabActiva === 'planificacion' && (
             <PlanificacionSemanal
               subs={subs} talleres={talleres} setTalleres={setTalleres}
               validaciones={validaciones} setValidaciones={setValidaciones}
@@ -121,7 +175,7 @@ function App() {
               catalogo={catalogo} setCatalogo={setCatalogo} unidadesProyecto={unidadesProyecto}
             />
           )}
-          {tab === 'validacion' && (
+          {tabActiva === 'validacion' && (
             <ValidacionTaller
               subs={subs} talleres={talleres} validaciones={validaciones} setValidaciones={setValidaciones}
               entregas={entregas} setEntregas={setEntregas} semanaActual={semanaActual} showToast={showToast}
@@ -129,19 +183,19 @@ function App() {
               tallerAbrirId={tallerAbrirId} onTallerAbierto={() => setTallerAbrirId(null)}
             />
           )}
-          {tab === 'bitacora' && (
+          {tabActiva === 'bitacora' && (
             <BitacoraDiaria
               subs={subs} talleres={talleres} bitacora={bitacora} setBitacora={setBitacora}
               ciclos={ciclos} setCiclos={setCiclos} quejas={quejas} semanaActual={semanaActual} showToast={showToast}
             />
           )}
-          {tab === 'quejas' && (
+          {tabActiva === 'quejas' && (
             <QuejasIncidencias subs={subs} talleres={talleres} validaciones={validaciones} entregas={entregas} quejas={quejas} setQuejas={setQuejas} showToast={showToast} />
           )}
-          {tab === 'fechas' && (
+          {tabActiva === 'fechas' && (
             <FechasPrometidas subs={subs} talleres={talleres} fechas={fechas} setFechas={setFechas} showToast={showToast} unidadesProyecto={unidadesProyecto} />
           )}
-          {tab === 'evaluacion' && (
+          {tabActiva === 'evaluacion' && (
             <EvaluacionSemanal
               subs={subs} talleres={talleres} validaciones={validaciones} entregas={entregas}
               bitacora={bitacora} quejas={quejas} ciclos={ciclos} semanaActual={semanaActual} setSemanaActual={setSemanaActual}
@@ -152,6 +206,7 @@ function App() {
       </main>
       <Toaster position="bottom-right" />
     </div>
+    </UsuarioActualContext.Provider>
   );
 }
 
