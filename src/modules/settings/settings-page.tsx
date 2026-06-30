@@ -2,8 +2,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ImportUnidadesPanel } from '@/components/shared/import-unidades-panel';
 import { BackupPanel } from '@/components/shared/backup-panel';
+import { UsuariosPanel } from './usuarios-panel';
 import { dbSet } from '@/lib/storage';
-import type { UnidadProyecto, ArchivoImportadoMeta } from '@/types';
+import type { UnidadProyecto, ArchivoImportadoMeta, Perfil } from '@/types';
 
 interface SettingsPageProps {
   unidadesProyecto: UnidadProyecto[];
@@ -12,9 +13,10 @@ interface SettingsPageProps {
   setArchivoMeta: (m: ArchivoImportadoMeta | null) => void;
   onRestored: () => void;
   showToast: (msg: string) => void;
+  miPerfil: Perfil;
 }
 
-export function SettingsPage({ unidadesProyecto, setUnidadesProyecto, archivoMeta, setArchivoMeta, onRestored, showToast }: SettingsPageProps) {
+export function SettingsPage({ unidadesProyecto, setUnidadesProyecto, archivoMeta, setArchivoMeta, onRestored, showToast, miPerfil }: SettingsPageProps) {
   const guardarUnidades = async (u: UnidadProyecto[]) => {
     await dbSet('unidades_proyecto', u);
   };
@@ -24,12 +26,13 @@ export function SettingsPage({ unidadesProyecto, setUnidadesProyecto, archivoMet
       <Card>
         <CardContent className="p-5">
           <div className="mb-1 text-[17px] font-semibold">Configuración</div>
-          <div className="mb-4 text-[12px] text-muted-foreground">Datos generales del sistema, información del proyecto, y respaldo de información.</div>
+          <div className="mb-4 text-[12px] text-muted-foreground">Datos generales del sistema, información del proyecto, usuarios, y respaldo de información.</div>
 
           <Tabs defaultValue="general">
             <TabsList className="mb-4">
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="datos">Datos del proyecto</TabsTrigger>
+              {miPerfil.rol === 'admin' && <TabsTrigger value="usuarios">Usuarios</TabsTrigger>}
               <TabsTrigger value="respaldo">Respaldo</TabsTrigger>
             </TabsList>
 
@@ -39,7 +42,7 @@ export function SettingsPage({ unidadesProyecto, setUnidadesProyecto, archivoMet
                   <div className="mb-1 text-[13.5px] font-medium">Sistema de Subcontratistas</div>
                   <div className="text-[12.5px] text-muted-foreground">
                     Gestión de unidad de entrega — Panorama Park y Panorama Garden. Esta sección reúne la configuración general del sistema:
-                    datos del proyecto, el archivo de unidades importado, y el respaldo de toda la información.
+                    datos del proyecto, usuarios y permisos, y el respaldo de toda la información.
                   </div>
                 </div>
               </div>
@@ -54,6 +57,12 @@ export function SettingsPage({ unidadesProyecto, setUnidadesProyecto, archivoMet
                 setArchivoMeta={setArchivoMeta}
               />
             </TabsContent>
+
+            {miPerfil.rol === 'admin' && (
+              <TabsContent value="usuarios">
+                <UsuariosPanel miPerfilId={miPerfil.id} showToast={showToast} />
+              </TabsContent>
+            )}
 
             <TabsContent value="respaldo">
               <BackupPanel onRestored={onRestored} showToast={showToast} />
