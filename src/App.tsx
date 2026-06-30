@@ -11,6 +11,7 @@ import { QuejasIncidencias } from '@/modules/quejas/quejas-incidencias';
 import { EvaluacionSemanal } from '@/modules/evaluacion/evaluacion-semanal';
 import { FechasPrometidas } from '@/modules/fechas/fechas-prometidas';
 import { CatalogoTalleres } from '@/modules/catalogo/catalogo-talleres';
+import { SettingsPage } from '@/modules/settings/settings-page';
 import { dbGet, dbSet } from '@/lib/storage';
 import { SEED_SUBCONTRATISTAS } from '@/lib/seed-data';
 import { mondayOf, todayISO } from '@/lib/utils-app';
@@ -95,6 +96,10 @@ function App() {
             <Dashboard
               subs={subs} talleres={talleres} validaciones={validaciones} entregas={entregas} bitacora={bitacora}
               quejas={quejas} fechas={fechas} semanaActual={semanaActual} goTo={setTab}
+            />
+          )}
+          {tab === 'settings' && (
+            <SettingsPage
               unidadesProyecto={unidadesProyecto} setUnidadesProyecto={setUnidadesProyecto}
               archivoMeta={archivoMeta} setArchivoMeta={setArchivoMeta}
               onRestored={cargarTodo} showToast={showToast}
