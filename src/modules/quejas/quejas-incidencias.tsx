@@ -17,9 +17,11 @@ import { AgrupacionConfigButton, type OpcionAgrupacion } from '@/components/shar
 import { ArbolAgrupado } from '@/components/shared/arbol-agrupado';
 import { construirArbolAgrupado, type DimensionAgrupacion } from '@/lib/agrupacion-multinivel';
 import { ExportarButton } from '@/components/shared/exportar-button';
+import { useUsuarioActual } from '@/lib/usuario-actual-context';
+import { puedeEditar } from '@/lib/auth';
 import { QuejaForm } from './queja-form';
 import { dbSet } from '@/lib/storage';
-import { fmtDate } from '@/lib/utils-app';
+import { fmtDate, fmtDateTime } from '@/lib/utils-app';
 import { exportQuejasExcel, COLUMNAS_QUEJA, COLUMNAS_QUEJA_DEFAULT } from '@/lib/export-quejas-excel';
 import { exportQuejasPDF } from '@/lib/export-quejas-pdf';
 import { ColumnSelector } from '@/components/shared/column-selector';
@@ -41,13 +43,14 @@ const OPCIONES_AGRUPACION_INCIDENCIAS: OpcionAgrupacion[] = [
   { key: 'causa', label: 'Causa' },
 ];
 
-function IncidenciasTabla({ list, onEdit, onRemove, onViewPhotos }: { list: Queja[]; onEdit: (q: Queja) => void; onRemove: (id: string) => void; onViewPhotos: (fotos: string[]) => void }) {
+function IncidenciasTabla({ list, onEdit, onRemove, onViewPhotos, soloLectura }: { list: Queja[]; onEdit: (q: Queja) => void; onRemove: (id: string) => void; onViewPhotos: (fotos: string[]) => void; soloLectura?: boolean }) {
   const columnas: ColumnConfig<Queja>[] = [
     { key: 'fecha', getValue: (q) => q.fecha },
     { key: 'tipo', getValue: (q) => q.tipo },
     { key: 'descripcion', getValue: (q) => q.descripcion },
     { key: 'causa', getValue: (q) => q.causa },
     { key: 'unidades', getValue: (q) => (q.esGeneral ? 'General' : q.unidades) },
+    { key: 'registradoPor', getValue: (q) => q.registradoPor || '' },
   ];
   const { rows, sortKey, sortDir, toggleSort, filters, setFilter } = useSortableFilterableTable(list, columnas);
 
@@ -60,6 +63,7 @@ function IncidenciasTabla({ list, onEdit, onRemove, onViewPhotos }: { list: Quej
           <SortableTableHead label="Descripción" columnKey="descripcion" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.descripcion} onFilterChange={setFilter} />
           <SortableTableHead label="Causa" columnKey="causa" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.causa} onFilterChange={setFilter} />
           <SortableTableHead label="Unidades" columnKey="unidades" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.unidades} onFilterChange={setFilter} />
+          <SortableTableHead label="Registrado por" columnKey="registradoPor" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.registradoPor} onFilterChange={setFilter} />
           <TableHead>Fotos</TableHead><TableHead />
         </TableRow>
       </TableHeader>
@@ -71,10 +75,11 @@ function IncidenciasTabla({ list, onEdit, onRemove, onViewPhotos }: { list: Quej
             <TableCell className="max-w-[260px] text-xs">{q.descripcion || '—'}</TableCell>
             <TableCell><Badge variant="secondary">{q.causa || '—'}</Badge></TableCell>
             <TableCell>{q.esGeneral ? <Badge variant="secondary">General</Badge> : (q.unidades || '—')}</TableCell>
+            <TableCell className="text-[11.5px] text-muted-foreground" title={q.registradoEn ? fmtDateTime(q.registradoEn) : ''}>{q.registradoPor || '—'}</TableCell>
             <TableCell>{q.fotos.length ? <Button size="sm" variant="outline" onClick={() => onViewPhotos(q.fotos)}>{q.fotos.length} foto(s)</Button> : '—'}</TableCell>
             <TableCell className="whitespace-nowrap">
-              <Button size="icon" variant="outline" className="mr-1.5 h-8 w-8" onClick={() => onEdit(q)} aria-label="Editar"><Pencil size={14} /></Button>
-              <Button size="icon" variant="outline" className="h-8 w-8 text-destructive" onClick={() => onRemove(q.id)} aria-label="Eliminar"><Trash2 size={14} /></Button>
+              <Button size="icon" variant="outline" className="mr-1.5 h-8 w-8" onClick={() => onEdit(q)} aria-label="Editar" disabled={soloLectura}><Pencil size={14} /></Button>
+              <Button size="icon" variant="outline" className="h-8 w-8 text-destructive" onClick={() => onRemove(q.id)} aria-label="Eliminar" disabled={soloLectura}><Trash2 size={14} /></Button>
             </TableCell>
           </TableRow>
         ))}
@@ -84,6 +89,8 @@ function IncidenciasTabla({ list, onEdit, onRemove, onViewPhotos }: { list: Quej
 }
 
 export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quejas, setQuejas, showToast }: QuejasIncidenciasProps) {
+  const usuario = useUsuarioActual();
+  const soloLectura = !puedeEditar(usuario.perfil, 'quejas');
   const [showNew, setShowNew] = useState(false);
   const [editing, setEditing] = useState<Queja | null>(null);
   const [viewPhotos, setViewPhotos] = useState<string[] | null>(null);
@@ -97,7 +104,8 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
 
   const save = async (q: Queja) => {
     const existing = quejas.find((x) => x.id === q.id);
-    const next = existing ? quejas.map((x) => (x.id === q.id ? q : x)) : [...quejas, q];
+    const registro = existing ? q : { ...q, registradoPor: usuario.nombre, registradoPorId: usuario.id, registradoEn: new Date().toISOString() };
+    const next = existing ? quejas.map((x) => (x.id === q.id ? registro : x)) : [...quejas, registro];
     setQuejas(next);
     await dbSet('quejas', next);
     setShowNew(false);
@@ -154,7 +162,7 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
                 onExcel={() => exportQuejasExcel(filtered, subs, filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null, columnasExport)}
                 onPDF={() => exportQuejasPDF(filtered, subs, filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null)}
               />
-              <Button onClick={() => setShowNew(true)}><Plus size={14} />Nueva incidencia</Button>
+              <Button onClick={() => setShowNew(true)} disabled={soloLectura}><Plus size={14} />Nueva incidencia</Button>
             </div>
           </div>
           <div className="mb-3.5 flex flex-wrap items-center gap-2">
@@ -188,7 +196,7 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
                     </div>
                   }
                 >
-                  <IncidenciasTabla list={list} onEdit={setEditing} onRemove={remove} onViewPhotos={setViewPhotos} />
+                  <IncidenciasTabla list={list} onEdit={setEditing} onRemove={remove} onViewPhotos={setViewPhotos} soloLectura={soloLectura} />
                 </CollapsibleGroup>
               ))}
             </>
@@ -197,7 +205,7 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
           {vista === 'personalizada' && (
             <ArbolAgrupado
               nodos={arbolPersonalizado}
-              renderHoja={(items) => <IncidenciasTabla list={items} onEdit={setEditing} onRemove={remove} onViewPhotos={setViewPhotos} />}
+              renderHoja={(items) => <IncidenciasTabla list={items} onEdit={setEditing} onRemove={remove} onViewPhotos={setViewPhotos} soloLectura={soloLectura} />}
             />
           )}
         </CardContent>
