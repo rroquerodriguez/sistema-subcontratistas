@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { PhotoUploader } from '@/components/shared/photo-uploader';
 import { uid, todayISO, nowISODatetime, fmtDate, fmtHora, soloFecha } from '@/lib/utils-app';
+import { useUsuarioActual } from '@/lib/usuario-actual-context';
 import type { Subcontratista, FechaPrometida, Taller, UnidadFechaPrometida, UnidadProyecto } from '@/types';
 
 interface FechaPrometidaFormProps {
@@ -19,13 +20,15 @@ interface FechaPrometidaFormProps {
   preselectSub?: string;
   onSave: (fp: FechaPrometida) => void;
   onCancel: () => void;
+  soloLectura?: boolean;
 }
 
 function unidadKey(u: UnidadFechaPrometida): string {
   return `${u.edificio} ${u.unidad}`.trim();
 }
 
-export function FechaPrometidaForm({ initial, subs, unidadesProyecto, preselectSub, onSave, onCancel }: FechaPrometidaFormProps) {
+export function FechaPrometidaForm({ initial, subs, unidadesProyecto, preselectSub, onSave, onCancel, soloLectura }: FechaPrometidaFormProps) {
+  const usuario = useUsuarioActual();
   const esEdicion = !!initial;
   const [f, setF] = useState<FechaPrometida>(
     initial || {
@@ -45,13 +48,13 @@ export function FechaPrometidaForm({ initial, subs, unidadesProyecto, preselectS
   const agregarComentario = () => {
     const texto = nuevoComentario.trim();
     if (!texto) return;
-    const nuevo = { fecha: nowISODatetime(), texto };
+    const nuevo = { fecha: nowISODatetime(), texto, autor: usuario.nombre, autorId: usuario.id };
     setF((prev) => ({ ...prev, comentarios: [...prev.comentarios, nuevo] }));
     setNuevoComentario('');
   };
 
   const comentariosPorFecha = () => {
-    const grupos = new Map<string, { fecha: string; texto: string }[]>();
+    const grupos = new Map<string, { fecha: string; texto: string; autor?: string; autorId?: string }[]>();
     [...f.comentarios].sort((a, b) => b.fecha.localeCompare(a.fecha)).forEach((c) => {
       const dia = soloFecha(c.fecha);
       if (!grupos.has(dia)) grupos.set(dia, []);
@@ -170,7 +173,7 @@ export function FechaPrometidaForm({ initial, subs, unidadesProyecto, preselectS
               onChange={(e) => setNuevoComentario(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); agregarComentario(); } }}
             />
-            <Button type="button" variant="outline" onClick={agregarComentario}><MessageSquarePlus size={14} />Agregar</Button>
+            <Button type="button" variant="outline" onClick={agregarComentario} disabled={soloLectura}><MessageSquarePlus size={14} />Agregar</Button>
           </div>
           {f.comentarios.length > 0 && (
             <div className="mt-2 max-h-[220px] space-y-2 overflow-y-auto rounded-md border border-border bg-muted/20 p-2.5">
@@ -180,7 +183,7 @@ export function FechaPrometidaForm({ initial, subs, unidadesProyecto, preselectS
                   <div className="space-y-1">
                     {items.map((c, i) => (
                       <div key={i} className="rounded-md bg-card px-2.5 py-1.5 text-[12px]">
-                        <span className="text-[10.5px] text-muted-foreground">{fmtHora(c.fecha)}</span> — {c.texto}
+                        <span className="text-[10.5px] text-muted-foreground">{fmtHora(c.fecha)}{c.autor ? ` · ${c.autor}` : ''}</span> — {c.texto}
                       </div>
                     ))}
                   </div>
@@ -245,9 +248,16 @@ export function FechaPrometidaForm({ initial, subs, unidadesProyecto, preselectS
         <Textarea rows={2} value={f.notas} onChange={(e) => upd('notas', e.target.value)} />
       </div>
 
+      {soloLectura && (
+        <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[12.5px] text-amber-800">
+          Tienes acceso de solo lectura a este módulo. Puedes ver la información, pero no guardar cambios.
+        </div>
+      )}
+
       <div className="mt-4 flex justify-end gap-2">
         <Button variant="outline" onClick={onCancel}>Cancelar</Button>
         <Button
+          disabled={soloLectura}
           onClick={() => {
             if (!f.subcontratistaId) { alert('Selecciona un subcontratista'); return; }
             if (!f.descripcion.trim()) { alert('Describe qué se prometió'); return; }

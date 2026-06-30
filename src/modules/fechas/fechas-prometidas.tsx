@@ -17,6 +17,8 @@ import { diasAtrasoFechaPrometida, estaAtrasada, estaCumplida } from '@/lib/stat
 import { exportFechasExcel, COLUMNAS_FECHA, COLUMNAS_FECHA_DEFAULT } from '@/lib/export-fechas-excel';
 import { exportFechasPDF } from '@/lib/export-fechas-pdf';
 import { ColumnSelector } from '@/components/shared/column-selector';
+import { useUsuarioActual } from '@/lib/usuario-actual-context';
+import { puedeEditar } from '@/lib/auth';
 import type { Subcontratista, FechaPrometida, Taller, UnidadProyecto } from '@/types';
 
 interface FechasPrometidasProps {
@@ -31,6 +33,8 @@ interface FechasPrometidasProps {
 type FiltroEstado = 'todos' | 'pendientes' | 'atrasadas' | 'cumplidas';
 
 export function FechasPrometidas({ subs, talleres, fechas, setFechas, showToast, unidadesProyecto }: FechasPrometidasProps) {
+  const usuario = useUsuarioActual();
+  const soloLectura = !puedeEditar(usuario.perfil, 'fechas');
   const [showNew, setShowNew] = useState(false);
   const [editing, setEditing] = useState<FechaPrometida | null>(null);
   const [viewPhotos, setViewPhotos] = useState<string[] | null>(null);
@@ -117,7 +121,7 @@ export function FechasPrometidas({ subs, talleres, fechas, setFechas, showToast,
               <Button variant="outline" onClick={() => exportFechasPDF(filtered, subs, filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null)}>
                 <FileText size={14} />PDF
               </Button>
-              <Button onClick={() => setShowNew(true)}><Plus size={14} />Nueva fecha</Button>
+              <Button onClick={() => setShowNew(true)} disabled={soloLectura}><Plus size={14} />Nueva fecha</Button>
             </div>
           </div>
 
@@ -169,8 +173,8 @@ export function FechasPrometidas({ subs, talleres, fechas, setFechas, showToast,
                           <CheckCircle2 size={14} />
                         </Button>
                       )}
-                      <Button size="icon" variant="outline" className="mr-1.5 h-8 w-8" onClick={() => setEditing(fp)} aria-label="Editar"><Pencil size={14} /></Button>
-                      <Button size="icon" variant="outline" className="h-8 w-8 text-destructive" onClick={() => remove(fp.id)} aria-label="Eliminar"><Trash2 size={14} /></Button>
+                      <Button size="icon" variant="outline" className="mr-1.5 h-8 w-8" onClick={() => setEditing(fp)} aria-label="Editar" disabled={soloLectura}><Pencil size={14} /></Button>
+                      <Button size="icon" variant="outline" className="h-8 w-8 text-destructive" onClick={() => remove(fp.id)} aria-label="Eliminar" disabled={soloLectura}><Trash2 size={14} /></Button>
                     </TableCell>
                   </TableRow>
                 );
@@ -186,14 +190,14 @@ export function FechasPrometidas({ subs, talleres, fechas, setFechas, showToast,
       <Dialog open={showNew} onOpenChange={setShowNew}>
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Nueva fecha prometida</DialogTitle></DialogHeader>
-          <FechaPrometidaForm subs={subs} talleres={talleres} unidadesProyecto={unidadesProyecto} preselectSub={filtroSub !== 'todos' ? filtroSub : undefined} onSave={save} onCancel={() => setShowNew(false)} />
+          <FechaPrometidaForm subs={subs} talleres={talleres} unidadesProyecto={unidadesProyecto} preselectSub={filtroSub !== 'todos' ? filtroSub : undefined} onSave={save} onCancel={() => setShowNew(false)} soloLectura={soloLectura} />
         </DialogContent>
       </Dialog>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Editar fecha prometida</DialogTitle></DialogHeader>
-          {editing && <FechaPrometidaForm subs={subs} talleres={talleres} unidadesProyecto={unidadesProyecto} initial={editing} onSave={save} onCancel={() => setEditing(null)} />}
+          {editing && <FechaPrometidaForm subs={subs} talleres={talleres} unidadesProyecto={unidadesProyecto} initial={editing} onSave={save} onCancel={() => setEditing(null)} soloLectura={soloLectura} />}
         </DialogContent>
       </Dialog>
 
