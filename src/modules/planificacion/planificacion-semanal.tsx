@@ -18,6 +18,8 @@ import { AgrupacionConfigButton, type OpcionAgrupacion } from '@/components/shar
 import { ArbolAgrupado } from '@/components/shared/arbol-agrupado';
 import { construirArbolAgrupado, type DimensionAgrupacion } from '@/lib/agrupacion-multinivel';
 import { ExportarButton } from '@/components/shared/exportar-button';
+import { useUsuarioActual } from '@/lib/usuario-actual-context';
+import { puedeEditar } from '@/lib/auth';
 import { Badge } from '@/components/ui/badge';
 import { MultiTallerForm, type MultiRow } from './multi-taller-form';
 import { TallerForm } from './taller-form';
@@ -30,7 +32,7 @@ import { exportPlanificacionSemanalPDF } from '@/lib/export-planificacion-semana
 import { exportPlanificacionPDF } from '@/lib/export-planificacion-pdf';
 import { ColumnSelector } from '@/components/shared/column-selector';
 import { CHECKLIST_ITEMS } from '@/lib/seed-data';
-import { uid, todayISO, weekRangeLabel, diffDays, diaLabel, mesKeyActual, mesLabel, semanasDelMes, fmtDate, fechaDeISODia } from '@/lib/utils-app';
+import { uid, todayISO, weekRangeLabel, diffDays, diaLabel, mesKeyActual, mesLabel, semanasDelMes, fmtDate, fmtDateTime, fechaDeISODia } from '@/lib/utils-app';
 import { fechasPrometidasAtrasadas, fechasPrometidasProximas } from '@/lib/stats-engine';
 import type { Subcontratista, Taller, Validacion, Entrega, FechaPrometida, TallerCatalogo, UnidadProyecto, TabId } from '@/types';
 
@@ -128,6 +130,8 @@ export function PlanificacionSemanal({
   subs, talleres, setTalleres, validaciones, setValidaciones, entregas, setEntregas,
   semanaActual, setSemanaActual, showToast, goTo, goToTaller, fechas, catalogo, setCatalogo, unidadesProyecto,
 }: PlanificacionSemanalProps) {
+  const usuario = useUsuarioActual();
+  const soloLectura = !puedeEditar(usuario.perfil, 'planificacion');
   const [showMulti, setShowMulti] = useState(false);
   const [editing, setEditing] = useState<Taller | null>(null);
   const [vista, setVista] = useState<'contratista' | 'global' | 'semanal' | 'personalizada'>('contratista');
@@ -192,6 +196,7 @@ export function PlanificacionSemanal({
       id: uid('tal'), semana: semanaActual, subcontratistaId: r.subcontratistaId, proyecto: r.proyecto,
       edificio: r.edificio, unidad: r.unidad, esGeneral: r.esGeneral, actividad: r.actividad, prioridad: r.prioridad, dia: r.dia,
       tecnico: r.tecnico, inspector: r.inspector, fechaPromesa: r.fechaPromesa, observaciones: '',
+      creadoPor: usuario.nombre, creadoPorId: usuario.id, creadoEn: new Date().toISOString(),
     }));
     const newValidaciones = newTalleres.map((t, i) =>
       rows[i].marcarLiberado ? createValidacionLiberada(t.id, t.inspector) : createValidacionPendiente(t.id)
@@ -369,7 +374,7 @@ export function PlanificacionSemanal({
         <TableCell>{t.proyecto}</TableCell>
         <TableCell>{t.edificio}{t.esGeneral && <Badge variant="secondary" className="ml-1.5">General</Badge>}</TableCell>
         <TableCell className="font-medium">{t.esGeneral ? '—' : t.unidad}</TableCell>
-        <TableCell>{t.actividad}</TableCell>
+        <TableCell title={t.creadoPor ? `Planificado por ${t.creadoPor}${t.creadoEn ? ` · ${fmtDateTime(t.creadoEn)}` : ''}` : ''}>{t.actividad}</TableCell>
         <TableCell><PrioridadBadge prioridad={t.prioridad} /></TableCell>
         <TableCell className="whitespace-nowrap">{diaLabel(t.semana, t.dia)}</TableCell>
         <TableCell className="whitespace-nowrap">{t.esGeneral ? <span className="text-muted-foreground">No aplica</span> : (t.tecnico || <span className="text-muted-foreground">Sin asignar</span>)}</TableCell>
@@ -382,8 +387,8 @@ export function PlanificacionSemanal({
           <Button size="sm" variant="secondary" className="mr-1.5" onClick={() => goToTaller(t.id)}>
             {estado === 'PENDIENTE' ? 'Validar' : 'Gestionar'}
           </Button>
-          <Button size="icon" variant="outline" className="mr-1.5 h-8 w-8" onClick={() => setEditing(t)} aria-label="Editar"><Pencil size={14} /></Button>
-          <Button size="icon" variant="outline" className="h-8 w-8 text-destructive" onClick={() => remove(t.id)} aria-label="Eliminar"><Trash2 size={14} /></Button>
+          <Button size="icon" variant="outline" className="mr-1.5 h-8 w-8" onClick={() => setEditing(t)} aria-label="Editar" disabled={soloLectura}><Pencil size={14} /></Button>
+          <Button size="icon" variant="outline" className="h-8 w-8 text-destructive" onClick={() => remove(t.id)} aria-label="Eliminar" disabled={soloLectura}><Trash2 size={14} /></Button>
         </TableCell>
       </>
     );
@@ -461,11 +466,11 @@ export function PlanificacionSemanal({
               <span className="text-[11px] text-muted-foreground">{semanaTalleres.length} taller(es) planificados</span>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={() => setShowMulti(true)}><LayoutGrid size={14} />Agregar talleres</Button>
+              <Button onClick={() => setShowMulti(true)} disabled={soloLectura}><LayoutGrid size={14} />Agregar talleres</Button>
               <Button variant="outline" onClick={() => descargarPlantillaPlanificacion(subs)}>
                 <Download size={14} />Descargar plantilla
               </Button>
-              <Button variant="outline" onClick={() => plantillaInputRef.current?.click()} disabled={subiendoPlantilla}>
+              <Button variant="outline" onClick={() => plantillaInputRef.current?.click()} disabled={subiendoPlantilla || soloLectura}>
                 <Upload size={14} />{subiendoPlantilla ? 'Leyendo...' : 'Subir plantilla'}
               </Button>
               <input ref={plantillaInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handlePlantillaFile} />
