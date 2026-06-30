@@ -40,6 +40,9 @@ export interface Taller {
   inspector: string;
   fechaPromesa: string; // YYYY-MM-DD, vacío si no aplica, sacada del reporte de unidades
   observaciones: string;
+  creadoPor?: string; // nombre de quién planificó este taller
+  creadoPorId?: string;
+  creadoEn?: string; // ISO datetime
 }
 
 export type ChecklistValue = 'SI' | 'NO' | 'N/A' | 'PENDIENTE';
@@ -55,6 +58,8 @@ export interface Validacion {
   resultado: ResultadoValidacion;
   observaciones: string;
   fotos: string[];
+  registradoPorId?: string; // id del usuario del sistema que guardó este registro (distinto de validadoPor, que es texto libre)
+  registradoEn?: string; // ISO datetime
 }
 
 export type EstadoEntrega = 'ENTREGADO' | 'NO ENTREGADO';
@@ -69,6 +74,8 @@ export interface Entrega {
   calidad: Calidad;
   notas: string;
   fotos: string[];
+  registradoPorId?: string;
+  registradoEn?: string;
 }
 
 export interface RegistroBitacora {
@@ -82,6 +89,9 @@ export interface RegistroBitacora {
   accion: string;
   notas: string;
   fotos: string[];
+  registradoPor?: string;
+  registradoPorId?: string;
+  registradoEn?: string;
 }
 
 export type EstadoCicloTaller = 'NO INICIADO' | 'EN PROCESO' | 'COMPLETADO';
@@ -89,7 +99,8 @@ export type EstadoCicloTaller = 'NO INICIADO' | 'EN PROCESO' | 'COMPLETADO';
 export interface ComentarioCiclo {
   fecha: string; // ISO datetime
   texto: string;
-  autor?: string;
+  autor?: string; // nombre del autor, para mostrar en pantalla
+  autorId?: string; // id del perfil que lo escribió
 }
 
 export interface CicloTaller {
@@ -116,6 +127,9 @@ export interface Queja {
   impactoDias: string;
   accion: string;
   fotos: string[];
+  registradoPor?: string;
+  registradoPorId?: string;
+  registradoEn?: string;
 }
 
 export interface TallerDetail {
@@ -161,6 +175,8 @@ export interface UnidadFechaPrometida {
 export interface ComentarioFechaPrometida {
   fecha: string; // ISO datetime
   texto: string;
+  autor?: string; // nombre del autor, para mostrar en pantalla
+  autorId?: string; // id del perfil que lo escribió
 }
 
 export interface FechaPrometida {
@@ -193,3 +209,26 @@ export interface TallerCatalogo {
 }
 
 export type TabId = 'dashboard' | 'maestro' | 'planificacion' | 'validacion' | 'bitacora' | 'quejas' | 'evaluacion' | 'fechas' | 'catalogo' | 'settings';
+
+export type Rol = 'admin' | 'normal';
+export type NivelAcceso = 'ninguno' | 'ver' | 'editar';
+
+/** Permisos por módulo: una entrada por cada TabId, indicando el nivel de acceso de ese usuario */
+export type PermisosModulos = Partial<Record<TabId, NivelAcceso>>;
+
+export interface Perfil {
+  id: string; // mismo id que auth.users
+  nombre: string;
+  rol: Rol;
+  permisos: PermisosModulos;
+  activo: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** Información mínima de autoría para mostrar "quién hizo qué y cuándo" en cualquier registro */
+export interface Autoria {
+  autorId: string;
+  autorNombre: string;
+  fechaHora: string; // ISO datetime
+}
