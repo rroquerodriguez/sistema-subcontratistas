@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Plus, Pencil, Trash2, FileSpreadsheet, FileText } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,11 @@ import { ProjectFilter } from '@/components/shared/project-filter';
 import { CollapsibleGroup } from '@/components/shared/collapsible-group';
 import { SortableTableHead } from '@/components/shared/sortable-table-head';
 import { useSortableFilterableTable, type ColumnConfig } from '@/lib/use-sortable-table';
+import { UnidadSearchBox, unidadMatchesSearch } from '@/components/shared/unidad-search-box';
+import { AgrupacionConfigButton, type OpcionAgrupacion } from '@/components/shared/agrupacion-config-button';
+import { ArbolAgrupado } from '@/components/shared/arbol-agrupado';
+import { construirArbolAgrupado, type DimensionAgrupacion } from '@/lib/agrupacion-multinivel';
+import { ExportarButton } from '@/components/shared/exportar-button';
 import { QuejaForm } from './queja-form';
 import { dbSet } from '@/lib/storage';
 import { fmtDate } from '@/lib/utils-app';
@@ -29,6 +34,12 @@ interface QuejasIncidenciasProps {
   setQuejas: (q: Queja[]) => void;
   showToast: (msg: string) => void;
 }
+
+const OPCIONES_AGRUPACION_INCIDENCIAS: OpcionAgrupacion[] = [
+  { key: 'contratista', label: 'Subcontratista' },
+  { key: 'tipo', label: 'Tipo' },
+  { key: 'causa', label: 'Causa' },
+];
 
 function IncidenciasTabla({ list, onEdit, onRemove, onViewPhotos }: { list: Queja[]; onEdit: (q: Queja) => void; onRemove: (id: string) => void; onViewPhotos: (fotos: string[]) => void }) {
   const columnas: ColumnConfig<Queja>[] = [
@@ -78,6 +89,9 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
   const [viewPhotos, setViewPhotos] = useState<string[] | null>(null);
   const [filtroSub, setFiltroSub] = useState('todos');
   const [filtroProyecto, setFiltroProyecto] = useState('todos');
+  const [buscadorUnidad, setBuscadorUnidad] = useState('');
+  const [nivelesAgrupacion, setNivelesAgrupacion] = useState<string[]>([]);
+  const [vista, setVista] = useState<'contratista' | 'personalizada'>('contratista');
   const [columnasExport, setColumnasExport] = useState<string[]>(COLUMNAS_QUEJA_DEFAULT);
   const subName = (id: string) => subs.find((s) => s.id === id)?.nombre || '—';
 
@@ -104,6 +118,9 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
     const tallerIdsDelProyecto = new Set(talleres.filter((t) => t.proyecto === filtroProyecto).map((t) => `${t.edificio} ${t.unidad}`.trim()));
     filtered = filtered.filter((q) => q.esGeneral || q.unidadesAfectadas.some((u) => tallerIdsDelProyecto.has(u)));
   }
+  if (buscadorUnidad.trim()) {
+    filtered = filtered.filter((q) => q.esGeneral || unidadMatchesSearch('', q.unidades, buscadorUnidad));
+  }
   const sorted = [...filtered].sort((a, b) => b.fecha.localeCompare(a.fecha));
 
   const grouped = useMemo(() => {
@@ -111,6 +128,16 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
     sorted.forEach((q) => { (map[q.subcontratistaId] = map[q.subcontratistaId] || []).push(q); });
     return map;
   }, [sorted]);
+
+  const dimensionesDisponibles: Record<string, DimensionAgrupacion<Queja>> = {
+    contratista: { key: 'contratista', label: 'Subcontratista', getValue: (q) => subName(q.subcontratistaId) },
+    tipo: { key: 'tipo', label: 'Tipo', getValue: (q) => q.tipo },
+    causa: { key: 'causa', label: 'Causa', getValue: (q) => q.causa || 'Sin causa' },
+  };
+  const arbolPersonalizado = useMemo(() => {
+    const dims = nivelesAgrupacion.map((k) => dimensionesDisponibles[k]).filter(Boolean);
+    return construirArbolAgrupado(sorted, dims);
+  }, [sorted, nivelesAgrupacion]);
 
   return (
     <div>
@@ -123,22 +150,17 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
             <span className="text-[15.5px] font-medium">Incidencias ({sorted.length})</span>
             <div className="flex gap-2">
               <ColumnSelector seleccionadas={columnasExport} onChange={setColumnasExport} columnas={COLUMNAS_QUEJA} />
-              <Button
-                variant="outline"
-                onClick={() => exportQuejasExcel(filtered, subs, filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null, columnasExport)}
-              >
-                <FileSpreadsheet size={14} />Excel
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => exportQuejasPDF(filtered, subs, filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null)}
-              >
-                <FileText size={14} />PDF
-              </Button>
+              <ExportarButton
+                onExcel={() => exportQuejasExcel(filtered, subs, filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null, columnasExport)}
+                onPDF={() => exportQuejasPDF(filtered, subs, filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null)}
+              />
               <Button onClick={() => setShowNew(true)}><Plus size={14} />Nueva incidencia</Button>
             </div>
           </div>
-          <div className="mb-3.5 flex flex-wrap gap-2">
+          <div className="mb-3.5 flex flex-wrap items-center gap-2">
+            <Button size="sm" variant={vista === 'contratista' ? 'default' : 'outline'} onClick={() => setVista('contratista')}>Por contratista</Button>
+            <Button size="sm" variant={vista === 'personalizada' ? 'default' : 'outline'} onClick={() => setVista('personalizada')}>Agrupación personalizada</Button>
+            <UnidadSearchBox value={buscadorUnidad} onChange={setBuscadorUnidad} />
             <ProjectFilter value={filtroProyecto} onChange={setFiltroProyecto} />
             <Select value={filtroSub} onValueChange={setFiltroSub}>
               <SelectTrigger className="max-w-[220px]"><SelectValue /></SelectTrigger>
@@ -147,24 +169,37 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
                 {subs.map((s) => <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>)}
               </SelectContent>
             </Select>
+            {vista === 'personalizada' && (
+              <AgrupacionConfigButton opciones={OPCIONES_AGRUPACION_INCIDENCIAS} seleccion={nivelesAgrupacion} onChange={setNivelesAgrupacion} />
+            )}
           </div>
 
-          {Object.keys(grouped).length === 0 && <div className="py-10 text-center text-sm text-muted-foreground">No hay incidencias registradas.</div>}
+          {vista === 'contratista' && (
+            <>
+              {Object.keys(grouped).length === 0 && <div className="py-10 text-center text-sm text-muted-foreground">No hay incidencias registradas.</div>}
+              {Object.entries(grouped).map(([subId, list]) => (
+                <CollapsibleGroup
+                  key={subId}
+                  header={
+                    <div className="flex items-center gap-2">
+                      <SubAvatar name={subName(subId)} id={subId} />
+                      <span className="text-sm font-medium">{subName(subId)}</span>
+                      <Badge variant="secondary">{list.length} incidencia(s)</Badge>
+                    </div>
+                  }
+                >
+                  <IncidenciasTabla list={list} onEdit={setEditing} onRemove={remove} onViewPhotos={setViewPhotos} />
+                </CollapsibleGroup>
+              ))}
+            </>
+          )}
 
-          {Object.entries(grouped).map(([subId, list]) => (
-            <CollapsibleGroup
-              key={subId}
-              header={
-                <div className="flex items-center gap-2">
-                  <SubAvatar name={subName(subId)} id={subId} />
-                  <span className="text-sm font-medium">{subName(subId)}</span>
-                  <Badge variant="secondary">{list.length} incidencia(s)</Badge>
-                </div>
-              }
-            >
-              <IncidenciasTabla list={list} onEdit={setEditing} onRemove={remove} onViewPhotos={setViewPhotos} />
-            </CollapsibleGroup>
-          ))}
+          {vista === 'personalizada' && (
+            <ArbolAgrupado
+              nodos={arbolPersonalizado}
+              renderHoja={(items) => <IncidenciasTabla list={items} onEdit={setEditing} onRemove={remove} onViewPhotos={setViewPhotos} />}
+            />
+          )}
         </CardContent>
       </Card>
 
