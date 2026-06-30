@@ -142,6 +142,9 @@ export interface Stats {
   quejasCount: number;
   pctLiberado: number;
   pctEntregado: number;
+  /** % de cumplimiento real: talleres ENTREGADOS sobre el TOTAL planificado del periodo
+   * (no sobre los liberados). Esta es la métrica de cumplimiento de contratista en el resumen. */
+  pctCumplimiento: number;
 }
 
 export interface CambioFechaPrometida {
@@ -189,4 +192,4 @@ export interface TallerCatalogo {
   notas: string;
 }
 
-export type TabId = 'dashboard' | 'maestro' | 'planificacion' | 'validacion' | 'bitacora' | 'quejas' | 'evaluacion' | 'fechas' | 'catalogo';
+export type TabId = 'dashboard' | 'maestro' | 'planificacion' | 'validacion' | 'bitacora' | 'quejas' | 'evaluacion' | 'fechas' | 'catalogo' | 'settings';
