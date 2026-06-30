@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { weekRangeLabel, mondayOf } from '@/lib/utils-app';
+import { weekRangeLabel, mondayOf, dateToISOLocal, todayISO } from '@/lib/utils-app';
 import { cn } from '@/lib/utils';
 
 const MESES = [
@@ -14,13 +14,13 @@ const DIAS_CORTOS = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'];
 function addDays(iso: string, n: number): string {
   const d = new Date(iso + 'T00:00:00');
   d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
+  return dateToISOLocal(d);
 }
 
 /** Devuelve los lunes de todas las semanas que tocan el mes (mes/año en base 0-index para mes) */
 function weeksOfMonth(year: number, month: number): string[] {
-  const firstOfMonth = new Date(year, month, 1).toISOString().slice(0, 10);
-  const lastOfMonth = new Date(year, month + 1, 0).toISOString().slice(0, 10);
+  const firstOfMonth = dateToISOLocal(new Date(year, month, 1));
+  const lastOfMonth = dateToISOLocal(new Date(year, month + 1, 0));
   let cursor = mondayOf(firstOfMonth);
   const weeks: string[] = [];
   while (cursor <= lastOfMonth) {
@@ -104,7 +104,7 @@ export function WeekCalendarPicker({ semanaActual, onChange }: WeekCalendarPicke
         </div>
 
         <div className="mt-2.5 border-t border-border pt-2.5">
-          <Button size="sm" variant="outline" className="w-full" onClick={() => selectWeek(mondayOf(new Date().toISOString().slice(0, 10)))}>
+          <Button size="sm" variant="outline" className="w-full" onClick={() => selectWeek(mondayOf(todayISO()))}>
             Ir a la semana actual
           </Button>
         </div>

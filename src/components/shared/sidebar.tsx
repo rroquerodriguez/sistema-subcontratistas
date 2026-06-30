@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, CalendarDays, ClipboardCheck, NotebookPen, AlertTriangle, BarChart3, Building2, CalendarClock, ListChecks } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarDays, ClipboardCheck, NotebookPen, AlertTriangle, BarChart3, Building2, CalendarClock, ListChecks, Settings } from 'lucide-react';
 import type { TabId } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -12,6 +12,7 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'quejas', label: 'Incidencias', icon: AlertTriangle },
   { id: 'fechas', label: 'Fechas prometidas', icon: CalendarClock },
   { id: 'evaluacion', label: 'Evaluación', icon: BarChart3 },
+  { id: 'settings', label: 'Configuración', icon: Settings },
 ];
 
 interface SidebarProps {
