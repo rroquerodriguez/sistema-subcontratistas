@@ -15,9 +15,10 @@ interface EntregaEditFormProps {
   validacion: Validacion | undefined;
   onSave: (e: Entrega) => void;
   onCancel: () => void;
+  soloLectura?: boolean;
 }
 
-export function EntregaEditForm({ entrega, taller, sub, validacion, onSave, onCancel }: EntregaEditFormProps) {
+export function EntregaEditForm({ entrega, taller, sub, validacion, onSave, onCancel, soloLectura }: EntregaEditFormProps) {
   const [f, setF] = useState<Entrega>(
     entrega || { id: uid('ent'), tallerId: taller.id, estado: 'NO ENTREGADO', fechaEntrega: '', recibidoPor: '', calidad: '', notas: '', fotos: [] }
   );
@@ -87,9 +88,16 @@ export function EntregaEditForm({ entrega, taller, sub, validacion, onSave, onCa
         <PhotoUploader photos={f.fotos} onAdd={(b64) => upd('fotos', [...f.fotos, b64])} onRemove={(i) => upd('fotos', f.fotos.filter((_, idx) => idx !== i))} />
       </div>
 
+      {soloLectura && (
+        <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[12.5px] text-amber-800">
+          Tienes acceso de solo lectura a este módulo. Puedes ver la información, pero no guardar cambios.
+        </div>
+      )}
+
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={onCancel}>Cancelar</Button>
         <Button
+          disabled={soloLectura}
           onClick={() => {
             if (f.estado === 'ENTREGADO' && !f.fechaEntrega) { alert('Indica la fecha de entrega'); return; }
             onSave(f);

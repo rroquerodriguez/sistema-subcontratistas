@@ -14,9 +14,10 @@ interface ValidacionEditFormProps {
   unidadesProyecto: UnidadProyecto[];
   onSave: (v: Validacion) => void;
   onCancel: () => void;
+  soloLectura?: boolean;
 }
 
-export function ValidacionEditForm({ validacion, taller, sub, unidadesProyecto, onSave, onCancel }: ValidacionEditFormProps) {
+export function ValidacionEditForm({ validacion, taller, sub, unidadesProyecto, onSave, onCancel, soloLectura }: ValidacionEditFormProps) {
   // Si el taller ya trae inspector asignado (del Excel) y todavía no se ha registrado quién valida, se usa como default
   const inspectorPorDefecto = taller.inspector || unidadesProyecto.find(
     (u) => u.edificio.toLowerCase() === taller.edificio.toLowerCase() && u.unidad.toLowerCase() === taller.unidad.toLowerCase()
@@ -92,9 +93,15 @@ export function ValidacionEditForm({ validacion, taller, sub, unidadesProyecto, 
         <PhotoUploader photos={f.fotos} onAdd={(b64) => upd('fotos', [...f.fotos, b64])} onRemove={(i) => upd('fotos', f.fotos.filter((_, idx) => idx !== i))} />
       </div>
 
+      {soloLectura && (
+        <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[12.5px] text-amber-800">
+          Tienes acceso de solo lectura a este módulo. Puedes ver la información, pero no guardar cambios.
+        </div>
+      )}
+
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={onCancel}>Cancelar</Button>
-        <Button onClick={() => onSave(f)}>Guardar liberación</Button>
+        <Button onClick={() => onSave(f)} disabled={soloLectura}>Guardar liberación</Button>
       </div>
     </div>
   );

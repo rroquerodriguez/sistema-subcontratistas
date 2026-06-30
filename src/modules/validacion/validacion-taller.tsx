@@ -15,6 +15,8 @@ import { AgrupacionConfigButton, type OpcionAgrupacion } from '@/components/shar
 import { ArbolAgrupado } from '@/components/shared/arbol-agrupado';
 import { construirArbolAgrupado, type DimensionAgrupacion } from '@/lib/agrupacion-multinivel';
 import { ExportarButton } from '@/components/shared/exportar-button';
+import { useUsuarioActual } from '@/lib/usuario-actual-context';
+import { puedeEditar } from '@/lib/auth';
 import { EstadoLiberacionBadge, EntregaBadge, DiasPill } from '@/components/shared/status-badges';
 import { GestionTallerModal } from './gestion-taller-modal';
 import { dbSet } from '@/lib/storage';
@@ -69,6 +71,7 @@ interface LiberacionTablaProps {
 
 /** Tabla de liberación con orden/filtro por columna */
 function LiberacionTabla({ filas, showSub, subName, onGestionar }: LiberacionTablaProps) {
+  const { nombrePorId } = useUsuarioActual();
   const columnas: ColumnConfig<FilaLib>[] = [
     ...(showSub ? [{ key: 'subcontratista', getValue: (f: FilaLib) => subName(f.t.subcontratistaId) }] : []),
     { key: 'unidad', getValue: (f) => (f.t.esGeneral ? 'GENERAL' : `${f.t.edificio} ${f.t.unidad}`) },
@@ -76,6 +79,7 @@ function LiberacionTabla({ filas, showSub, subName, onGestionar }: LiberacionTab
     { key: 'estadoLiberacion', getValue: (f) => f.v.resultado },
     { key: 'estadoEntrega', getValue: (f) => f.ent?.estado || 'NO ENTREGADO' },
     { key: 'dias', getValue: (f) => f.dias ?? -1 },
+    { key: 'gestionadoPor', getValue: (f) => nombrePorId(f.v.registradoPorId) },
   ];
   const { rows, sortKey, sortDir, toggleSort, filters, setFilter } = useSortableFilterableTable(filas, columnas);
 
@@ -89,6 +93,7 @@ function LiberacionTabla({ filas, showSub, subName, onGestionar }: LiberacionTab
           <SortableTableHead label="Liberación" columnKey="estadoLiberacion" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.estadoLiberacion} onFilterChange={setFilter} />
           <SortableTableHead label="Entrega" columnKey="estadoEntrega" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.estadoEntrega} onFilterChange={setFilter} />
           <SortableTableHead label="Días" columnKey="dias" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterable={false} />
+          <SortableTableHead label="Gestionado por" columnKey="gestionadoPor" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.gestionadoPor} onFilterChange={setFilter} />
           <TableHead />
         </TableRow>
       </TableHeader>
@@ -101,13 +106,14 @@ function LiberacionTabla({ filas, showSub, subName, onGestionar }: LiberacionTab
             <TableCell><EstadoLiberacionBadge estado={f.v.resultado} /></TableCell>
             <TableCell>{f.ent ? <EntregaBadge estado={f.ent.estado} /> : '—'}</TableCell>
             <TableCell><DiasPill dias={f.dias} entregado={f.ent?.estado === 'ENTREGADO'} /></TableCell>
+            <TableCell className="text-[11.5px] text-muted-foreground">{nombrePorId(f.v.registradoPorId)}</TableCell>
             <TableCell>
               <Button size="sm" variant="secondary" onClick={() => onGestionar(f)}>Gestionar</Button>
             </TableCell>
           </TableRow>
         ))}
         {!rows.length && (
-          <TableRow><TableCell colSpan={showSub ? 7 : 6} className="py-8 text-center text-sm text-muted-foreground">Sin talleres para mostrar.</TableCell></TableRow>
+          <TableRow><TableCell colSpan={showSub ? 8 : 7} className="py-8 text-center text-sm text-muted-foreground">Sin talleres para mostrar.</TableCell></TableRow>
         )}
       </TableBody>
     </Table>
@@ -118,6 +124,8 @@ export function ValidacionTaller({
   subs, talleres, validaciones, setValidaciones, entregas, setEntregas, semanaActual, showToast, unidadesProyecto,
   tallerAbrirId, onTallerAbierto,
 }: ValidacionTallerProps) {
+  const usuario = useUsuarioActual();
+  const soloLectura = !puedeEditar(usuario.perfil, 'validacion');
   const [gestionando, setGestionando] = useState<{ v: Validacion; t: Taller; ent?: Entrega } | null>(null);
   const [filtroEstado, setFiltroEstado] = useState<ResultadoValidacion | 'todos'>('todos');
   const [filtroSub, setFiltroSub] = useState('todos');
@@ -142,7 +150,8 @@ export function ValidacionTaller({
   }, [tallerAbrirId]);
 
   const saveValidacion = async (v: Validacion) => {
-    const next = validaciones.map((x) => (x.id === v.id ? v : x));
+    const registro = { ...v, registradoPorId: usuario.id, registradoEn: new Date().toISOString() };
+    const next = validaciones.map((x) => (x.id === v.id ? registro : x));
     setValidaciones(next);
     await dbSet('validaciones', next);
     showToast('Liberación guardada');
@@ -151,7 +160,8 @@ export function ValidacionTaller({
 
   const saveEntrega = async (e: Entrega) => {
     const exists = entregas.find((x) => x.id === e.id);
-    const next = exists ? entregas.map((x) => (x.id === e.id ? e : x)) : [...entregas, e];
+    const registro = { ...e, registradoPorId: usuario.id, registradoEn: new Date().toISOString() };
+    const next = exists ? entregas.map((x) => (x.id === e.id ? registro : x)) : [...entregas, registro];
     setEntregas(next);
     await dbSet('entregas', next);
     showToast('Entrega registrada');
@@ -294,6 +304,7 @@ export function ValidacionTaller({
           onSaveValidacion={saveValidacion}
           onSaveEntrega={saveEntrega}
           onClose={() => setGestionando(null)}
+          soloLectura={soloLectura}
         />
       )}
     </div>
