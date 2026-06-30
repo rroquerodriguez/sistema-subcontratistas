@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
-import { LayoutGrid, Pencil, Trash2, AlertTriangle, ArrowRightCircle, FileSpreadsheet, FileText, Download, Upload, CalendarDays } from 'lucide-react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { LayoutGrid, Pencil, Trash2, AlertTriangle, ArrowRightCircle, Download, Upload, CalendarDays } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,6 +11,13 @@ import { MonthPicker } from '@/components/shared/month-picker';
 import { ProjectFilter } from '@/components/shared/project-filter';
 import { EstadoLiberacionBadge, EntregaBadge, PrioridadBadge, DiasPill } from '@/components/shared/status-badges';
 import { CollapsibleGroup } from '@/components/shared/collapsible-group';
+import { SortableTableHead } from '@/components/shared/sortable-table-head';
+import { useSortableFilterableTable, type ColumnConfig } from '@/lib/use-sortable-table';
+import { UnidadSearchBox, unidadMatchesSearch } from '@/components/shared/unidad-search-box';
+import { AgrupacionConfigButton, type OpcionAgrupacion } from '@/components/shared/agrupacion-config-button';
+import { ArbolAgrupado } from '@/components/shared/arbol-agrupado';
+import { construirArbolAgrupado, type DimensionAgrupacion } from '@/lib/agrupacion-multinivel';
+import { ExportarButton } from '@/components/shared/exportar-button';
 import { Badge } from '@/components/ui/badge';
 import { MultiTallerForm, type MultiRow } from './multi-taller-form';
 import { TallerForm } from './taller-form';
@@ -18,6 +25,7 @@ import { dbSet } from '@/lib/storage';
 import { descargarPlantillaPlanificacion, parsePlantillaPlanificacion } from '@/lib/import-planificacion';
 import { talleresAtrasados } from '@/lib/stats-engine';
 import { exportPlanificacionExcel, COLUMNAS_PLANIFICACION_DEFAULT } from '@/lib/export-planificacion-excel';
+import { exportPlanificacionSemanalExcel } from '@/lib/export-planificacion-semanal-excel';
 import { exportPlanificacionPDF } from '@/lib/export-planificacion-pdf';
 import { ColumnSelector } from '@/components/shared/column-selector';
 import { CHECKLIST_ITEMS } from '@/lib/seed-data';
@@ -26,6 +34,75 @@ import { fechasPrometidasAtrasadas, fechasPrometidasProximas } from '@/lib/stats
 import type { Subcontratista, Taller, Validacion, Entrega, FechaPrometida, TallerCatalogo, UnidadProyecto, TabId } from '@/types';
 
 const DIAS_ORDER = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+const OPCIONES_AGRUPACION_PLANIFICACION: OpcionAgrupacion[] = [
+  { key: 'contratista', label: 'Subcontratista' },
+  { key: 'proyecto', label: 'Proyecto' },
+  { key: 'dia', label: 'Día' },
+  { key: 'prioridad', label: 'Prioridad' },
+  { key: 'estadoLiberacion', label: 'Estado de liberación' },
+];
+
+interface TallaresTablaProps {
+  items: Taller[];
+  showSub: boolean;
+  subName: (id: string) => string;
+  validacionDe: (id: string) => Validacion | undefined;
+  renderCells: (t: Taller) => ReactNode;
+}
+
+/** Tabla de talleres con orden/filtro por columna (clic en encabezado + búsqueda por columna),
+ * y orden por día como criterio secundario siempre disponible al limpiar el orden manual. */
+function TallaresTabla({ items, showSub, subName, validacionDe, renderCells }: TallaresTablaProps) {
+  const columnas: ColumnConfig<Taller>[] = [
+    ...(showSub ? [{ key: 'subcontratista', getValue: (t: Taller) => subName(t.subcontratistaId) }] : []),
+    { key: 'proyecto', getValue: (t) => t.proyecto },
+    { key: 'edificio', getValue: (t) => t.edificio },
+    { key: 'unidad', getValue: (t) => (t.esGeneral ? 'GENERAL' : t.unidad) },
+    { key: 'actividad', getValue: (t) => t.actividad },
+    { key: 'prioridad', getValue: (t) => Number(t.prioridad) },
+    { key: 'dia', getValue: (t) => DIAS_ORDER.indexOf(t.dia) },
+    { key: 'tecnico', getValue: (t) => t.tecnico },
+    { key: 'inspector', getValue: (t) => t.inspector },
+    { key: 'fechaPromesa', getValue: (t) => t.fechaPromesa },
+    { key: 'estadoLiberacion', getValue: (t) => validacionDe(t.id)?.resultado || 'PENDIENTE' },
+  ];
+  const sortByDia = (a: Taller, b: Taller) => DIAS_ORDER.indexOf(a.dia) - DIAS_ORDER.indexOf(b.dia) || Number(a.prioridad) - Number(b.prioridad);
+  const base = useMemo(() => [...items].sort(sortByDia), [items]);
+  const { rows, sortKey, sortDir, toggleSort, filters, setFilter } = useSortableFilterableTable(base, columnas);
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          {showSub && <SortableTableHead label="Subcontratista" columnKey="subcontratista" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.subcontratista} onFilterChange={setFilter} />}
+          <SortableTableHead label="Proyecto" columnKey="proyecto" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.proyecto} onFilterChange={setFilter} />
+          <SortableTableHead label="Edificio/Villa/Townhouse" columnKey="edificio" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.edificio} onFilterChange={setFilter} />
+          <SortableTableHead label="Unidad" columnKey="unidad" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.unidad} onFilterChange={setFilter} />
+          <SortableTableHead label="Actividad" columnKey="actividad" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.actividad} onFilterChange={setFilter} />
+          <SortableTableHead label="Prioridad" columnKey="prioridad" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterable={false} />
+          <SortableTableHead label="Día" columnKey="dia" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterable={false} />
+          <SortableTableHead label="Técnico" columnKey="tecnico" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.tecnico} onFilterChange={setFilter} />
+          <SortableTableHead label="Inspector" columnKey="inspector" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.inspector} onFilterChange={setFilter} />
+          <SortableTableHead label="F. Promesa" columnKey="fechaPromesa" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterable={false} />
+          <SortableTableHead label="Liberación" columnKey="estadoLiberacion" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.estadoLiberacion} onFilterChange={setFilter} />
+          <TableHead>Entrega</TableHead><TableHead>Días</TableHead><TableHead />
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((t) => (
+          <TableRow key={t.id}>
+            {showSub && <TableCell className="font-medium">{subName(t.subcontratistaId)}</TableCell>}
+            {renderCells(t)}
+          </TableRow>
+        ))}
+        {!rows.length && (
+          <TableRow><TableCell colSpan={showSub ? 14 : 13} className="py-8 text-center text-sm text-muted-foreground">Sin talleres para mostrar.</TableCell></TableRow>
+        )}
+      </TableBody>
+    </Table>
+  );
+}
 
 interface PlanificacionSemanalProps {
   subs: Subcontratista[];
@@ -52,10 +129,13 @@ export function PlanificacionSemanal({
 }: PlanificacionSemanalProps) {
   const [showMulti, setShowMulti] = useState(false);
   const [editing, setEditing] = useState<Taller | null>(null);
-  const [vista, setVista] = useState<'contratista' | 'global' | 'semanal'>('contratista');
+  const [vista, setVista] = useState<'contratista' | 'global' | 'semanal' | 'personalizada'>('contratista');
   const [filtroSub, setFiltroSub] = useState('todos');
   const [filtroProyecto, setFiltroProyecto] = useState('todos');
   const [filtroDia, setFiltroDia] = useState('todos');
+  const [buscadorUnidad, setBuscadorUnidad] = useState('');
+  const [nivelesAgrupacion, setNivelesAgrupacion] = useState<string[]>([]);
+  const [vistaExportar, setVistaExportar] = useState<'tabla' | 'semanal'>('tabla');
   const [periodo, setPeriodo] = useState<'semanal' | 'mensual'>('semanal');
   const [mesActual, setMesActual] = useState(mesKeyActual());
   const [subiendoPlantilla, setSubiendoPlantilla] = useState(false);
@@ -214,8 +294,25 @@ export function PlanificacionSemanal({
     showToast(`${atrasados.length} taller(es) movido(s) a la semana actual`);
   };
 
+  const sortByDiaPrioridad = (a: Taller, b: Taller) =>
+    DIAS_ORDER.indexOf(a.dia) - DIAS_ORDER.indexOf(b.dia) || Number(a.prioridad) - Number(b.prioridad);
+
   let globalFiltered = filtroSub === 'todos' ? semanaTalleres : semanaTalleres.filter((t) => t.subcontratistaId === filtroSub);
   if (filtroDia !== 'todos') globalFiltered = globalFiltered.filter((t) => t.dia === filtroDia);
+  if (buscadorUnidad.trim()) globalFiltered = globalFiltered.filter((t) => unidadMatchesSearch(t.edificio, t.esGeneral ? 'general' : t.unidad, buscadorUnidad));
+
+  const dimensionesDisponibles: Record<string, DimensionAgrupacion<Taller>> = {
+    contratista: { key: 'contratista', label: 'Subcontratista', getValue: (t) => subName(t.subcontratistaId) },
+    proyecto: { key: 'proyecto', label: 'Proyecto', getValue: (t) => t.proyecto },
+    dia: { key: 'dia', label: 'Día', getValue: (t) => t.dia },
+    prioridad: { key: 'prioridad', label: 'Prioridad', getValue: (t) => `Prioridad ${t.prioridad}` },
+    estadoLiberacion: { key: 'estadoLiberacion', label: 'Estado de liberación', getValue: (t) => validacionDe(t.id)?.resultado || 'PENDIENTE' },
+  };
+  const arbolPersonalizado = useMemo(() => {
+    const dims = nivelesAgrupacion.map((k) => dimensionesDisponibles[k]).filter(Boolean);
+    const ordenado = [...globalFiltered].sort(sortByDiaPrioridad);
+    return construirArbolAgrupado(ordenado, dims);
+  }, [globalFiltered, nivelesAgrupacion]);
 
   const contratistasConTalleres = useMemo(() => {
     const ids = [...new Set(globalFiltered.map((t) => t.subcontratistaId))];
@@ -247,9 +344,6 @@ export function PlanificacionSemanal({
   const fechasAtrasadasRelevantes = useMemo(() => fechasPrometidasAtrasadas(fechas), [fechas]);
   const fechasProximasRelevantes = useMemo(() => fechasPrometidasProximas(fechas, 3), [fechas]);
 
-  const sortByDiaPrioridad = (a: Taller, b: Taller) =>
-    DIAS_ORDER.indexOf(a.dia) - DIAS_ORDER.indexOf(b.dia) || Number(a.prioridad) - Number(b.prioridad);
-
   const analisisPeriodo = useMemo(() => {
     const base = filtroSub === 'todos' ? semanaTalleres : semanaTalleres.filter((t) => t.subcontratistaId === filtroSub);
     if (!base.length) return `No hay talleres planificados para ${periodoLabel} todavía.`;
@@ -260,8 +354,6 @@ export function PlanificacionSemanal({
     const pctLib = Math.round((liberadosCount / base.length) * 100);
     return `Para ${periodoLabel} hay ${base.length} taller(es) planificado(s) entre ${porContratista} subcontratista(s). De estos, ${liberadosCount} (${pctLib}%) ya están liberados y ${entregadosCount} ya fueron entregados. ${pendientesCount > 0 ? `Quedan ${pendientesCount} taller(es) pendientes de validar — conviene priorizarlos para no acumular atraso.` : 'No hay talleres pendientes de validar en este periodo, lo cual es una buena señal de avance.'}`;
   }, [semanaTalleres, filtroSub, periodoLabel, validaciones, entregas]);
-  const sortedGlobal = [...globalFiltered].sort(sortByDiaPrioridad);
-
   const renderCells = (t: Taller) => {
     const val = validacionDe(t.id);
     const ent = entregaDe(t.id);
@@ -384,12 +476,14 @@ export function PlanificacionSemanal({
           </div>
 
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2.5">
-            <div className="flex gap-1.5">
+            <div className="flex flex-wrap gap-1.5">
               <Button size="sm" variant={vista === 'contratista' ? 'default' : 'outline'} onClick={() => setVista('contratista')}>Por contratista</Button>
               <Button size="sm" variant={vista === 'global' ? 'default' : 'outline'} onClick={() => setVista('global')}>Vista global de obra</Button>
               <Button size="sm" variant={vista === 'semanal' ? 'default' : 'outline'} onClick={() => setVista('semanal')}><CalendarDays size={13} />Vista semanal por días</Button>
+              <Button size="sm" variant={vista === 'personalizada' ? 'default' : 'outline'} onClick={() => setVista('personalizada')}>Agrupación personalizada</Button>
             </div>
             <div className="flex flex-wrap gap-2">
+              <UnidadSearchBox value={buscadorUnidad} onChange={setBuscadorUnidad} />
               <ProjectFilter value={filtroProyecto} onChange={setFiltroProyecto} />
               <Select value={filtroDia} onValueChange={setFiltroDia}>
                 <SelectTrigger className="h-9 w-[140px] text-xs"><SelectValue /></SelectTrigger>
@@ -405,31 +499,39 @@ export function PlanificacionSemanal({
                   {subs.map((s) => <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {vista === 'personalizada' && (
+                <AgrupacionConfigButton opciones={OPCIONES_AGRUPACION_PLANIFICACION} seleccion={nivelesAgrupacion} onChange={setNivelesAgrupacion} />
+              )}
               <ColumnSelector seleccionadas={columnasExport} onChange={setColumnasExport} />
-              <Button
-                variant="outline"
-                onClick={() => exportPlanificacionExcel(
+              <Select value={vistaExportar} onValueChange={(v) => setVistaExportar(v as 'tabla' | 'semanal')}>
+                <SelectTrigger className="h-9 w-[180px] text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tabla">Exportar: Tabla estándar</SelectItem>
+                  <SelectItem value="semanal">Exportar: Vista semanal por días</SelectItem>
+                </SelectContent>
+              </Select>
+              <ExportarButton
+                onExcel={() => {
+                  if (vistaExportar === 'semanal') {
+                    exportPlanificacionSemanalExcel(vistaSemanalGrupos, periodo === 'mensual' ? mesLabel(mesActual) : `Semana del ${weekRangeLabel(semanaActual)}`);
+                  } else {
+                    exportPlanificacionExcel(
+                      globalFiltered,
+                      validaciones, entregas, subs,
+                      periodo === 'mensual' ? mesLabel(mesActual) : `Semana del ${weekRangeLabel(semanaActual)}`,
+                      filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null,
+                      columnasExport, fechas
+                    );
+                  }
+                }}
+                onPDF={() => exportPlanificacionPDF(
                   globalFiltered,
                   validaciones, entregas, subs,
                   periodo === 'mensual' ? mesLabel(mesActual) : `Semana del ${weekRangeLabel(semanaActual)}`,
                   filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null,
                   columnasExport, fechas
                 )}
-              >
-                <FileSpreadsheet size={14} />Excel
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => exportPlanificacionPDF(
-                  globalFiltered,
-                  validaciones, entregas, subs,
-                  periodo === 'mensual' ? mesLabel(mesActual) : `Semana del ${weekRangeLabel(semanaActual)}`,
-                  filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null,
-                  columnasExport, fechas
-                )}
-              >
-                <FileText size={14} />PDF
-              </Button>
+              />
             </div>
           </div>
 
@@ -444,49 +546,13 @@ export function PlanificacionSemanal({
                   </div>
                 }
               >
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Proyecto</TableHead><TableHead>Edificio/Villa/Townhouse</TableHead><TableHead>Unidad</TableHead>
-                      <TableHead>Actividad</TableHead><TableHead>Prioridad</TableHead><TableHead>Día</TableHead>
-                      <TableHead>Técnico</TableHead><TableHead>Inspector</TableHead><TableHead>F. Promesa</TableHead>
-                      <TableHead>Liberación</TableHead><TableHead>Entrega</TableHead><TableHead>Días</TableHead><TableHead />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {c.items.sort(sortByDiaPrioridad).map((t) => (
-                      <TableRow key={t.id}>{renderCells(t)}</TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <TallaresTabla items={c.items} showSub={false} subName={subName} validacionDe={validacionDe} renderCells={renderCells} />
               </CollapsibleGroup>
             )) : <div className="py-10 text-center text-sm text-muted-foreground">No hay talleres planificados para esta semana. Agrega varios a la vez con el botón de arriba.</div>
           )}
 
           {vista === 'global' && (
-            <div>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Subcontratista</TableHead><TableHead>Proyecto</TableHead><TableHead>Edificio/Villa/Townhouse</TableHead><TableHead>Unidad</TableHead>
-                    <TableHead>Actividad</TableHead><TableHead>Prioridad</TableHead><TableHead>Día</TableHead>
-                    <TableHead>Técnico</TableHead><TableHead>Inspector</TableHead><TableHead>F. Promesa</TableHead>
-                    <TableHead>Liberación</TableHead><TableHead>Entrega</TableHead><TableHead>Días</TableHead><TableHead />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedGlobal.map((t) => (
-                    <TableRow key={t.id}>
-                      <TableCell className="font-medium">{subName(t.subcontratistaId)}</TableCell>
-                      {renderCells(t)}
-                    </TableRow>
-                  ))}
-                  {!sortedGlobal.length && (
-                    <TableRow><TableCell colSpan={14} className="py-10 text-center text-sm text-muted-foreground">No hay talleres para mostrar.</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+            <TallaresTabla items={globalFiltered} showSub subName={subName} validacionDe={validacionDe} renderCells={renderCells} />
           )}
 
           {vista === 'semanal' && (
@@ -543,6 +609,13 @@ export function PlanificacionSemanal({
                 ))}
               </CollapsibleGroup>
             )) : <div className="py-10 text-center text-sm text-muted-foreground">No hay talleres planificados para esta semana.</div>
+          )}
+
+          {vista === 'personalizada' && (
+            <ArbolAgrupado
+              nodos={arbolPersonalizado}
+              renderHoja={(items) => <TallaresTabla items={items} showSub subName={subName} validacionDe={validacionDe} renderCells={renderCells} />}
+            />
           )}
         </CardContent>
       </Card>
