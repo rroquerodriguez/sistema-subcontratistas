@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FileSpreadsheet, FileText } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +8,13 @@ import { SubAvatar } from '@/components/shared/sub-avatar';
 import { ProjectFilter } from '@/components/shared/project-filter';
 import { ColumnSelector } from '@/components/shared/column-selector';
 import { CollapsibleGroup } from '@/components/shared/collapsible-group';
+import { SortableTableHead } from '@/components/shared/sortable-table-head';
+import { useSortableFilterableTable, type ColumnConfig } from '@/lib/use-sortable-table';
+import { UnidadSearchBox, unidadMatchesSearch } from '@/components/shared/unidad-search-box';
+import { AgrupacionConfigButton, type OpcionAgrupacion } from '@/components/shared/agrupacion-config-button';
+import { ArbolAgrupado } from '@/components/shared/arbol-agrupado';
+import { construirArbolAgrupado, type DimensionAgrupacion } from '@/lib/agrupacion-multinivel';
+import { ExportarButton } from '@/components/shared/exportar-button';
 import { EstadoLiberacionBadge, EntregaBadge, DiasPill } from '@/components/shared/status-badges';
 import { GestionTallerModal } from './gestion-taller-modal';
 import { dbSet } from '@/lib/storage';
@@ -38,7 +44,75 @@ const FILTROS: { value: ResultadoValidacion | 'todos'; label: string }[] = [
   { value: 'NO LISTO', label: 'No liberadas' },
 ];
 
-type VistaLib = 'contratista' | 'global';
+const OPCIONES_AGRUPACION_LIBERACION: OpcionAgrupacion[] = [
+  { key: 'contratista', label: 'Subcontratista' },
+  { key: 'proyecto', label: 'Proyecto' },
+  { key: 'estadoLiberacion', label: 'Estado de liberación' },
+  { key: 'estadoEntrega', label: 'Estado de entrega' },
+];
+
+type VistaLib = 'contratista' | 'global' | 'personalizada';
+
+interface FilaLib {
+  v: Validacion;
+  t: Taller;
+  ent?: Entrega;
+  dias: number | null;
+}
+
+interface LiberacionTablaProps {
+  filas: FilaLib[];
+  showSub: boolean;
+  subName: (id: string) => string;
+  onGestionar: (f: FilaLib) => void;
+}
+
+/** Tabla de liberación con orden/filtro por columna */
+function LiberacionTabla({ filas, showSub, subName, onGestionar }: LiberacionTablaProps) {
+  const columnas: ColumnConfig<FilaLib>[] = [
+    ...(showSub ? [{ key: 'subcontratista', getValue: (f: FilaLib) => subName(f.t.subcontratistaId) }] : []),
+    { key: 'unidad', getValue: (f) => (f.t.esGeneral ? 'GENERAL' : `${f.t.edificio} ${f.t.unidad}`) },
+    { key: 'actividad', getValue: (f) => f.t.actividad },
+    { key: 'estadoLiberacion', getValue: (f) => f.v.resultado },
+    { key: 'estadoEntrega', getValue: (f) => f.ent?.estado || 'NO ENTREGADO' },
+    { key: 'dias', getValue: (f) => f.dias ?? -1 },
+  ];
+  const { rows, sortKey, sortDir, toggleSort, filters, setFilter } = useSortableFilterableTable(filas, columnas);
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          {showSub && <SortableTableHead label="Subcontratista" columnKey="subcontratista" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.subcontratista} onFilterChange={setFilter} />}
+          <SortableTableHead label="Unidad" columnKey="unidad" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.unidad} onFilterChange={setFilter} />
+          <SortableTableHead label="Actividad" columnKey="actividad" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.actividad} onFilterChange={setFilter} />
+          <SortableTableHead label="Liberación" columnKey="estadoLiberacion" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.estadoLiberacion} onFilterChange={setFilter} />
+          <SortableTableHead label="Entrega" columnKey="estadoEntrega" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.estadoEntrega} onFilterChange={setFilter} />
+          <SortableTableHead label="Días" columnKey="dias" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterable={false} />
+          <TableHead />
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((f) => (
+          <TableRow key={f.v.id}>
+            {showSub && <TableCell className="font-medium">{subName(f.t.subcontratistaId)}</TableCell>}
+            <TableCell>{f.t.esGeneral ? <Badge variant="secondary">General</Badge> : `${f.t.edificio} ${f.t.unidad}`}</TableCell>
+            <TableCell>{f.t.actividad}</TableCell>
+            <TableCell><EstadoLiberacionBadge estado={f.v.resultado} /></TableCell>
+            <TableCell>{f.ent ? <EntregaBadge estado={f.ent.estado} /> : '—'}</TableCell>
+            <TableCell><DiasPill dias={f.dias} entregado={f.ent?.estado === 'ENTREGADO'} /></TableCell>
+            <TableCell>
+              <Button size="sm" variant="secondary" onClick={() => onGestionar(f)}>Gestionar</Button>
+            </TableCell>
+          </TableRow>
+        ))}
+        {!rows.length && (
+          <TableRow><TableCell colSpan={showSub ? 7 : 6} className="py-8 text-center text-sm text-muted-foreground">Sin talleres para mostrar.</TableCell></TableRow>
+        )}
+      </TableBody>
+    </Table>
+  );
+}
 
 export function ValidacionTaller({
   subs, talleres, validaciones, setValidaciones, entregas, setEntregas, semanaActual, showToast, unidadesProyecto,
@@ -48,6 +122,8 @@ export function ValidacionTaller({
   const [filtroEstado, setFiltroEstado] = useState<ResultadoValidacion | 'todos'>('todos');
   const [filtroSub, setFiltroSub] = useState('todos');
   const [filtroProyecto, setFiltroProyecto] = useState('todos');
+  const [buscadorUnidad, setBuscadorUnidad] = useState('');
+  const [nivelesAgrupacion, setNivelesAgrupacion] = useState<string[]>([]);
   const [vista, setVista] = useState<VistaLib>('contratista');
   const [columnasExport, setColumnasExport] = useState<string[]>(COLUMNAS_LIBERACION_DEFAULT);
   const subName = (id: string) => subs.find((s) => s.id === id)?.nombre || '—';
@@ -92,6 +168,10 @@ export function ValidacionTaller({
     const tallerIdsDelSub = new Set(talleres.filter((t) => t.subcontratistaId === filtroSub).map((t) => t.id));
     semanaValidaciones = semanaValidaciones.filter((v) => tallerIdsDelSub.has(v.tallerId));
   }
+  if (buscadorUnidad.trim()) {
+    const tallerIdsMatch = new Set(talleres.filter((t) => unidadMatchesSearch(t.edificio, t.esGeneral ? 'general' : t.unidad, buscadorUnidad)).map((t) => t.id));
+    semanaValidaciones = semanaValidaciones.filter((v) => tallerIdsMatch.has(v.tallerId));
+  }
   const sorted = [...semanaValidaciones].sort((a, b) => (order[a.resultado] ?? 1) - (order[b.resultado] ?? 1));
 
   const talleresParaExportar = useMemo(() => {
@@ -99,40 +179,36 @@ export function ValidacionTaller({
     return semanaTalleresFiltrados.filter((t) => idsValidos.has(t.id) && (filtroSub === 'todos' || t.subcontratistaId === filtroSub));
   }, [sorted, semanaTalleresFiltrados, filtroSub]);
 
-  const gruposPorContratista = useMemo(() => {
-    const map = new Map<string, typeof sorted>();
-    sorted.forEach((v) => {
-      const t = talleres.find((x) => x.id === v.tallerId);
-      if (!t) return;
-      if (!map.has(t.subcontratistaId)) map.set(t.subcontratistaId, []);
-      map.get(t.subcontratistaId)!.push(v);
-    });
-    return [...map.entries()].map(([subId, items]) => ({ subId, items }));
-  }, [sorted, talleres]);
-
-  const renderFila = (v: Validacion) => {
-    const t = talleres.find((x) => x.id === v.tallerId);
-    if (!t) return null;
-    const ent = entregas.find((e) => e.tallerId === t.id);
+  const filas: FilaLib[] = useMemo(() => sorted.map((v) => {
+    const t = talleres.find((x) => x.id === v.tallerId)!;
+    const ent = entregas.find((e) => e.tallerId === v.tallerId);
     let dias: number | null = null;
     if (v.resultado === 'LISTO' && v.fecha) {
       const hasta = ent?.estado === 'ENTREGADO' && ent.fechaEntrega ? ent.fechaEntrega : todayISO();
       dias = diffDays(v.fecha, hasta);
     }
-    return (
-      <TableRow key={v.id}>
-        {vista === 'global' && <TableCell className="font-medium">{subName(t.subcontratistaId)}</TableCell>}
-        <TableCell>{t.esGeneral ? <Badge variant="secondary">General</Badge> : `${t.edificio} ${t.unidad}`}</TableCell>
-        <TableCell>{t.actividad}</TableCell>
-        <TableCell><EstadoLiberacionBadge estado={v.resultado} /></TableCell>
-        <TableCell>{ent ? <EntregaBadge estado={ent.estado} /> : '—'}</TableCell>
-        <TableCell><DiasPill dias={dias} entregado={ent?.estado === 'ENTREGADO'} /></TableCell>
-        <TableCell>
-          <Button size="sm" variant="secondary" onClick={() => setGestionando({ v, t, ent })}>Gestionar</Button>
-        </TableCell>
-      </TableRow>
-    );
+    return { v, t, ent, dias };
+  }).filter((f) => !!f.t), [sorted, talleres, entregas]);
+
+  const gruposPorContratista = useMemo(() => {
+    const map = new Map<string, FilaLib[]>();
+    filas.forEach((f) => {
+      if (!map.has(f.t.subcontratistaId)) map.set(f.t.subcontratistaId, []);
+      map.get(f.t.subcontratistaId)!.push(f);
+    });
+    return [...map.entries()].map(([subId, items]) => ({ subId, items }));
+  }, [filas]);
+
+  const dimensionesDisponibles: Record<string, DimensionAgrupacion<FilaLib>> = {
+    contratista: { key: 'contratista', label: 'Subcontratista', getValue: (f) => subName(f.t.subcontratistaId) },
+    proyecto: { key: 'proyecto', label: 'Proyecto', getValue: (f) => f.t.proyecto },
+    estadoLiberacion: { key: 'estadoLiberacion', label: 'Estado de liberación', getValue: (f) => f.v.resultado },
+    estadoEntrega: { key: 'estadoEntrega', label: 'Estado de entrega', getValue: (f) => f.ent?.estado || 'NO ENTREGADO' },
   };
+  const arbolPersonalizado = useMemo(() => {
+    const dims = nivelesAgrupacion.map((k) => dimensionesDisponibles[k]).filter(Boolean);
+    return construirArbolAgrupado(filas, dims);
+  }, [filas, nivelesAgrupacion]);
 
   const periodoLabelExport = `Semana del ${weekRangeLabel(semanaActual)}`;
   const subFiltroObj = filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null;
@@ -145,11 +221,13 @@ export function ValidacionTaller({
           <div className="mb-4 text-[12px] text-muted-foreground">Semana del {weekRangeLabel(semanaActual)} — gestiona la liberación del área para trabajar y la entrega del trabajo por el subcontratista.</div>
 
           <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2.5">
-            <div className="flex gap-1.5">
+            <div className="flex flex-wrap gap-1.5">
               <Button size="sm" variant={vista === 'contratista' ? 'default' : 'outline'} onClick={() => setVista('contratista')}>Por contratista</Button>
               <Button size="sm" variant={vista === 'global' ? 'default' : 'outline'} onClick={() => setVista('global')}>Vista global</Button>
+              <Button size="sm" variant={vista === 'personalizada' ? 'default' : 'outline'} onClick={() => setVista('personalizada')}>Agrupación personalizada</Button>
             </div>
             <div className="flex flex-wrap gap-2">
+              <UnidadSearchBox value={buscadorUnidad} onChange={setBuscadorUnidad} />
               <ProjectFilter value={filtroProyecto} onChange={setFiltroProyecto} />
               <Select value={filtroSub} onValueChange={setFiltroSub}>
                 <SelectTrigger className="h-9 w-[200px] text-xs"><SelectValue /></SelectTrigger>
@@ -158,13 +236,14 @@ export function ValidacionTaller({
                   {subs.map((s) => <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {vista === 'personalizada' && (
+                <AgrupacionConfigButton opciones={OPCIONES_AGRUPACION_LIBERACION} seleccion={nivelesAgrupacion} onChange={setNivelesAgrupacion} />
+              )}
               <ColumnSelector seleccionadas={columnasExport} onChange={setColumnasExport} columnas={COLUMNAS_LIBERACION} />
-              <Button variant="outline" onClick={() => exportLiberacionExcel(talleresParaExportar, validaciones, entregas, subs, periodoLabelExport, subFiltroObj, columnasExport)}>
-                <FileSpreadsheet size={14} />Excel
-              </Button>
-              <Button variant="outline" onClick={() => exportLiberacionPDF(talleresParaExportar, validaciones, entregas, subs, periodoLabelExport, subFiltroObj, columnasExport)}>
-                <FileText size={14} />PDF
-              </Button>
+              <ExportarButton
+                onExcel={() => exportLiberacionExcel(talleresParaExportar, validaciones, entregas, subs, periodoLabelExport, subFiltroObj, columnasExport)}
+                onPDF={() => exportLiberacionPDF(talleresParaExportar, validaciones, entregas, subs, periodoLabelExport, subFiltroObj, columnasExport)}
+              />
             </div>
           </div>
 
@@ -187,34 +266,20 @@ export function ValidacionTaller({
                   </div>
                 }
               >
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Unidad</TableHead><TableHead>Actividad</TableHead>
-                      <TableHead>Liberación</TableHead><TableHead>Entrega</TableHead><TableHead>Días</TableHead><TableHead />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>{items.map(renderFila)}</TableBody>
-                </Table>
+                <LiberacionTabla filas={items} showSub={false} subName={subName} onGestionar={(f) => setGestionando({ v: f.v, t: f.t, ent: f.ent })} />
               </CollapsibleGroup>
             )) : <div className="py-10 text-center text-sm text-muted-foreground">No hay talleres para gestionar esta semana.</div>
           )}
 
           {vista === 'global' && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Subcontratista</TableHead><TableHead>Unidad</TableHead><TableHead>Actividad</TableHead>
-                  <TableHead>Liberación</TableHead><TableHead>Entrega</TableHead><TableHead>Días</TableHead><TableHead />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sorted.map(renderFila)}
-                {!sorted.length && (
-                  <TableRow><TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">No hay talleres para gestionar esta semana.</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
+            <LiberacionTabla filas={filas} showSub subName={subName} onGestionar={(f) => setGestionando({ v: f.v, t: f.t, ent: f.ent })} />
+          )}
+
+          {vista === 'personalizada' && (
+            <ArbolAgrupado
+              nodos={arbolPersonalizado}
+              renderHoja={(items) => <LiberacionTabla filas={items} showSub subName={subName} onGestionar={(f) => setGestionando({ v: f.v, t: f.t, ent: f.ent })} />}
+            />
           )}
         </CardContent>
       </Card>

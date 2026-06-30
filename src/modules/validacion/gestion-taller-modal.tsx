@@ -22,7 +22,7 @@ export function GestionTallerModal({ taller, validacion, entrega, sub, unidadesP
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader><DialogTitle>Gestionar taller</DialogTitle></DialogHeader>
         <Tabs value={tab} onValueChange={(v) => setTab(v as 'liberacion' | 'entrega')}>
           <TabsList className="mb-4 grid w-full grid-cols-2">
