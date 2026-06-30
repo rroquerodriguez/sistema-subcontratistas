@@ -8,15 +8,12 @@ import { SubAvatar } from '@/components/shared/sub-avatar';
 import { WeekCalendarPicker } from '@/components/shared/week-calendar-picker';
 import { MonthPicker } from '@/components/shared/month-picker';
 import { ProjectFilter } from '@/components/shared/project-filter';
-import { ImportUnidadesPanel } from '@/components/shared/import-unidades-panel';
-import { BackupPanel } from '@/components/shared/backup-panel';
 import {
   computeStats, tallerDetailList, talleresAtrasados, fechasPrometidasAtrasadas, fechasPrometidasProximas,
   diasAtrasoFechaPrometida, buildParrafoAnalisisEvaluacion,
 } from '@/lib/stats-engine';
 import { weekRangeLabel, mondayOf, fmtDate, mesKeyActual, mesLabel, semanasDelMes } from '@/lib/utils-app';
-import { dbSet } from '@/lib/storage';
-import type { Subcontratista, Taller, Validacion, Entrega, RegistroBitacora, Queja, FechaPrometida, UnidadProyecto, ArchivoImportadoMeta, TabId } from '@/types';
+import type { Subcontratista, Taller, Validacion, Entrega, RegistroBitacora, Queja, FechaPrometida, TabId } from '@/types';
 
 interface DashboardProps {
   subs: Subcontratista[];
@@ -28,23 +25,13 @@ interface DashboardProps {
   fechas: FechaPrometida[];
   semanaActual: string;
   goTo: (tab: TabId) => void;
-  unidadesProyecto: UnidadProyecto[];
-  setUnidadesProyecto: (u: UnidadProyecto[]) => void;
-  archivoMeta: ArchivoImportadoMeta | null;
-  setArchivoMeta: (m: ArchivoImportadoMeta | null) => void;
-  onRestored: () => void;
-  showToast: (msg: string) => void;
 }
 
-export function Dashboard({ subs, talleres: talleresTodos, validaciones, entregas, bitacora, quejas, fechas, semanaActual, goTo, unidadesProyecto, setUnidadesProyecto, archivoMeta, setArchivoMeta, onRestored, showToast }: DashboardProps) {
+export function Dashboard({ subs, talleres: talleresTodos, validaciones, entregas, bitacora, quejas, fechas, semanaActual, goTo }: DashboardProps) {
   const [periodo, setPeriodo] = useState<'semanal' | 'mensual'>('semanal');
   const [mesActual, setMesActual] = useState(mesKeyActual());
   const [semanaSel, setSemanaSel] = useState(semanaActual);
   const [filtroProyecto, setFiltroProyecto] = useState('todos');
-
-  const guardarUnidades = async (u: UnidadProyecto[]) => {
-    await dbSet('unidades_proyecto', u);
-  };
 
   const semanasDelMesActual = useMemo(() => semanasDelMes(mesActual), [mesActual]);
   const semanaOMes = periodo === 'mensual' ? semanasDelMesActual : semanaSel;
@@ -87,8 +74,6 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
 
   return (
     <div className="space-y-4">
-      <BackupPanel onRestored={onRestored} showToast={showToast} />
-      <ImportUnidadesPanel unidades={unidadesProyecto} setUnidades={setUnidadesProyecto} onSaved={guardarUnidades} archivoMeta={archivoMeta} setArchivoMeta={setArchivoMeta} />
       <Card className="border-border bg-gradient-to-br from-muted/70 to-white">
         <CardContent className="p-5">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5">
@@ -113,7 +98,7 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
       <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard label="Talleres del periodo" value={stats.totalTalleres} icon={CalendarClock} colorBg="#D3D3D3" colorFg="#36454F" />
         <MetricCard label="% liberado para trabajar" value={`${stats.pctLiberado}%`} icon={LockOpen} colorBg="hsl(142 71% 92%)" colorFg="hsl(142 71% 30%)" />
-        <MetricCard label="% entregados" value={`${stats.pctEntregado}%`} icon={Package} colorBg="hsl(38 92% 92%)" colorFg="hsl(38 92% 35%)" />
+        <MetricCard label="% cumplimiento (entregado/planificado)" value={`${stats.pctCumplimiento}%`} icon={Package} colorBg="hsl(38 92% 92%)" colorFg="hsl(38 92% 35%)" />
         <MetricCard label="Incidencias del periodo" value={quejasDelPeriodo.length} icon={AlertTriangle} colorBg="hsl(0 70% 93%)" colorFg="hsl(0 70% 45%)" />
       </div>
 
@@ -200,13 +185,13 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
                         <div
                           className="h-full rounded-full transition-all"
                           style={{
-                            width: `${s.pctLiberado}%`,
-                            background: s.pctLiberado >= 90 ? 'hsl(142 71% 40%)' : s.pctLiberado >= 70 ? 'hsl(38 92% 45%)' : 'hsl(0 70% 50%)',
+                            width: `${s.pctCumplimiento}%`,
+                            background: s.pctCumplimiento >= 90 ? 'hsl(142 71% 40%)' : s.pctCumplimiento >= 70 ? 'hsl(38 92% 45%)' : 'hsl(0 70% 50%)',
                           }}
                         />
                       </div>
                     </div>
-                    <div className="w-10 text-right text-[13px] font-medium">{s.pctLiberado}%</div>
+                    <div className="w-10 text-right text-[13px] font-medium">{s.pctCumplimiento}%</div>
                   </div>
                 ))}
               </div>
