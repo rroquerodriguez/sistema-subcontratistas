@@ -26,6 +26,7 @@ import { descargarPlantillaPlanificacion, parsePlantillaPlanificacion } from '@/
 import { talleresAtrasados } from '@/lib/stats-engine';
 import { exportPlanificacionExcel, COLUMNAS_PLANIFICACION_DEFAULT } from '@/lib/export-planificacion-excel';
 import { exportPlanificacionSemanalExcel } from '@/lib/export-planificacion-semanal-excel';
+import { exportPlanificacionSemanalPDF } from '@/lib/export-planificacion-semanal-pdf';
 import { exportPlanificacionPDF } from '@/lib/export-planificacion-pdf';
 import { ColumnSelector } from '@/components/shared/column-selector';
 import { CHECKLIST_ITEMS } from '@/lib/seed-data';
@@ -524,13 +525,19 @@ export function PlanificacionSemanal({
                     );
                   }
                 }}
-                onPDF={() => exportPlanificacionPDF(
-                  globalFiltered,
-                  validaciones, entregas, subs,
-                  periodo === 'mensual' ? mesLabel(mesActual) : `Semana del ${weekRangeLabel(semanaActual)}`,
-                  filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null,
-                  columnasExport, fechas
-                )}
+                onPDF={() => {
+                  if (vistaExportar === 'semanal') {
+                    exportPlanificacionSemanalPDF(vistaSemanalGrupos, periodo === 'mensual' ? mesLabel(mesActual) : `Semana del ${weekRangeLabel(semanaActual)}`);
+                  } else {
+                    exportPlanificacionPDF(
+                      globalFiltered,
+                      validaciones, entregas, subs,
+                      periodo === 'mensual' ? mesLabel(mesActual) : `Semana del ${weekRangeLabel(semanaActual)}`,
+                      filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null,
+                      columnasExport, fechas
+                    );
+                  }
+                }}
               />
             </div>
           </div>
