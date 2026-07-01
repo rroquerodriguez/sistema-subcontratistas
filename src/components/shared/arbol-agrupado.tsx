@@ -8,12 +8,17 @@ interface ArbolAgrupadoProps<T> {
   renderHoja: (items: T[]) => ReactNode;
   renderLabelNivel?: (valor: string, label: string) => ReactNode;
   profundidad?: number;
+  /** Estado de colapso controlado desde el módulo padre (hook useCollapseState), para que los
+   * botones de "Expandir todo"/"Colapsar todo" y los controles por nivel funcionen. Si se omiten,
+   * cada nodo maneja su propio estado interno como antes. */
+  isCollapsed?: (key: string) => boolean;
+  onToggle?: (key: string) => void;
 }
 
 /** Renderiza recursivamente el árbol de agrupación: cada nivel intermedio es un CollapsibleGroup
  * con su contador de items, y el último nivel (hoja) usa renderHoja para mostrar el contenido real
  * (tabla, tarjetas, etc.) — definido por cada pantalla según lo que necesite mostrar. */
-export function ArbolAgrupado<T>({ nodos, renderHoja, renderLabelNivel, profundidad = 0 }: ArbolAgrupadoProps<T>) {
+export function ArbolAgrupado<T>({ nodos, renderHoja, renderLabelNivel, profundidad = 0, isCollapsed, onToggle }: ArbolAgrupadoProps<T>) {
   return (
     <div className={profundidad > 0 ? 'ml-4 border-l border-border/60 pl-3' : ''}>
       {nodos.map((nodo) => {
@@ -24,6 +29,8 @@ export function ArbolAgrupado<T>({ nodos, renderHoja, renderLabelNivel, profundi
         return (
           <CollapsibleGroup
             key={nodo.key}
+            open={isCollapsed ? !isCollapsed(nodo.key) : undefined}
+            onToggle={onToggle ? () => onToggle(nodo.key) : undefined}
             header={
               <div className="flex items-center gap-2 text-sm font-medium">
                 {renderLabelNivel ? renderLabelNivel(nodo.valor, nodo.label) : <span>{nodo.valor}</span>}
@@ -31,7 +38,7 @@ export function ArbolAgrupado<T>({ nodos, renderHoja, renderLabelNivel, profundi
               </div>
             }
           >
-            {nodo.esHoja ? renderHoja(nodo.items) : <ArbolAgrupado nodos={nodo.hijos} renderHoja={renderHoja} renderLabelNivel={renderLabelNivel} profundidad={profundidad + 1} />}
+            {nodo.esHoja ? renderHoja(nodo.items) : <ArbolAgrupado nodos={nodo.hijos} renderHoja={renderHoja} renderLabelNivel={renderLabelNivel} profundidad={profundidad + 1} isCollapsed={isCollapsed} onToggle={onToggle} />}
           </CollapsibleGroup>
         );
       })}
