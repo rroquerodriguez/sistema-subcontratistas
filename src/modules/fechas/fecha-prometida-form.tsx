@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { PhotoUploader } from '@/components/shared/photo-uploader';
 import { uid, todayISO, nowISODatetime, fmtDate, fmtHora, soloFecha } from '@/lib/utils-app';
 import { useUsuarioActual } from '@/lib/usuario-actual-context';
+import { diasAtrasoFechaPrometida, diasAtrasoOriginal, fechaPrometidaOriginal, vecesReprogramada } from '@/lib/stats-engine';
 import type { Subcontratista, FechaPrometida, Taller, UnidadFechaPrometida, UnidadProyecto } from '@/types';
 
 interface FechaPrometidaFormProps {
@@ -152,6 +153,21 @@ export function FechaPrometidaForm({ initial, subs, unidadesProyecto, preselectS
 
       {f.historialFechas.length > 0 && (
         <div className="my-3.5 rounded-md border border-border bg-muted/30 p-2.5">
+          <div className="mb-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
+            <span>
+              Compromiso original: <strong>{fmtDate(fechaPrometidaOriginal(f))}</strong>
+            </span>
+            <span className="text-muted-foreground">·</span>
+            <span>
+              Atraso desde el original: <strong className="text-destructive">{diasAtrasoOriginal(f) ?? 0} día(s)</strong>
+            </span>
+            <span className="text-muted-foreground">·</span>
+            <span>
+              Atraso vs. promesa vigente: <strong>{diasAtrasoFechaPrometida(f) ?? 0} día(s)</strong>
+            </span>
+            <span className="text-muted-foreground">·</span>
+            <span>Reprogramada {vecesReprogramada(f)}x</span>
+          </div>
           <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Historial de cambios de fecha</div>
           <div className="space-y-1">
             {[...f.historialFechas].reverse().map((c, i) => (

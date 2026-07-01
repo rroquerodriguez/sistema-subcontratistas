@@ -13,7 +13,7 @@ import { useSortableFilterableTable, type ColumnConfig } from '@/lib/use-sortabl
 import { FechaPrometidaForm } from './fecha-prometida-form';
 import { dbSet } from '@/lib/storage';
 import { fmtDate, todayISO } from '@/lib/utils-app';
-import { diasAtrasoFechaPrometida, estaAtrasada, estaCumplida } from '@/lib/stats-engine';
+import { diasAtrasoFechaPrometida, diasAtrasoOriginal, vecesReprogramada, estaAtrasada, estaCumplida } from '@/lib/stats-engine';
 import { exportFechasExcel, COLUMNAS_FECHA, COLUMNAS_FECHA_DEFAULT } from '@/lib/export-fechas-excel';
 import { exportFechasPDF } from '@/lib/export-fechas-pdf';
 import { ColumnSelector } from '@/components/shared/column-selector';
@@ -79,6 +79,7 @@ export function FechasPrometidas({ subs, talleres, fechas, setFechas, showToast,
     { key: 'fechaPrometida', getValue: (fp) => fp.fechaPrometidaActual },
     { key: 'estado', getValue: (fp) => (estaCumplida(fp) ? 'Cumplida' : estaAtrasada(fp) ? 'Atrasada' : 'Pendiente') },
     { key: 'diasAtraso', getValue: (fp) => diasAtrasoFechaPrometida(fp) ?? 0 },
+    { key: 'diasAtrasoOriginal', getValue: (fp) => diasAtrasoOriginal(fp) ?? 0 },
   ];
   const { rows: sorted, sortKey, sortDir, toggleSort, filters, setFilter } = useSortableFilterableTable(sortedBase, columnasTabla);
 
@@ -134,12 +135,15 @@ export function FechasPrometidas({ subs, talleres, fechas, setFechas, showToast,
                 <SortableTableHead label="Fecha prometida" columnKey="fechaPrometida" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterable={false} />
                 <SortableTableHead label="Estado" columnKey="estado" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.estado} onFilterChange={setFilter} />
                 <SortableTableHead label="Días atraso" columnKey="diasAtraso" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterable={false} />
+                <SortableTableHead label="Atraso desde original" columnKey="diasAtrasoOriginal" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterable={false} />
                 <TableHead>Fotos</TableHead><TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
               {sorted.map((fp) => {
                 const dias = diasAtrasoFechaPrometida(fp);
+                const diasOriginal = diasAtrasoOriginal(fp);
+                const reprogramaciones = vecesReprogramada(fp);
                 const cumplida = estaCumplida(fp);
                 const atrasada = estaAtrasada(fp);
                 return (
@@ -166,6 +170,14 @@ export function FechasPrometidas({ subs, talleres, fechas, setFechas, showToast,
                       )}
                     </TableCell>
                     <TableCell>{dias !== null && dias > 0 ? <Badge variant={cumplida ? 'secondary' : 'destructive'}>{dias} día{dias === 1 ? '' : 's'}</Badge> : '—'}</TableCell>
+                    <TableCell>
+                      {diasOriginal !== null && diasOriginal > 0 ? (
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant={cumplida ? 'secondary' : 'destructive'}>{diasOriginal} día{diasOriginal === 1 ? '' : 's'}</Badge>
+                          {reprogramaciones > 0 && <span className="text-[10.5px] text-muted-foreground">({reprogramaciones}x)</span>}
+                        </div>
+                      ) : '—'}
+                    </TableCell>
                     <TableCell>{fp.fotos?.length ? <Button size="sm" variant="outline" onClick={() => setViewPhotos(fp.fotos)}>{fp.fotos.length} foto(s)</Button> : '—'}</TableCell>
                     <TableCell className="whitespace-nowrap">
                       {!cumplida && (
@@ -180,7 +192,7 @@ export function FechasPrometidas({ subs, talleres, fechas, setFechas, showToast,
                 );
               })}
               {!sorted.length && (
-                <TableRow><TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">No hay fechas prometidas registradas.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">No hay fechas prometidas registradas.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
