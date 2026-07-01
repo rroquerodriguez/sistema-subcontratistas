@@ -6,14 +6,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { SubAvatar } from '@/components/shared/sub-avatar';
 import { ProjectFilter } from '@/components/shared/project-filter';
+import { InspectorFilter } from '@/components/shared/inspector-filter';
 import { ColumnSelector } from '@/components/shared/column-selector';
 import { CollapsibleGroup } from '@/components/shared/collapsible-group';
+import { ExpandCollapseAllButtons } from '@/components/shared/expand-collapse-all-button';
+import { NivelCollapseControls } from '@/components/shared/nivel-collapse-controls';
+import { useCollapseState } from '@/lib/use-collapse-state';
 import { SortableTableHead } from '@/components/shared/sortable-table-head';
 import { useSortableFilterableTable, type ColumnConfig } from '@/lib/use-sortable-table';
 import { UnidadSearchBox, unidadMatchesSearch } from '@/components/shared/unidad-search-box';
 import { AgrupacionConfigButton, type OpcionAgrupacion } from '@/components/shared/agrupacion-config-button';
 import { ArbolAgrupado } from '@/components/shared/arbol-agrupado';
-import { construirArbolAgrupado, type DimensionAgrupacion } from '@/lib/agrupacion-multinivel';
+import { construirArbolAgrupado, todasLasKeysAgrupables, keysPorNivel, type DimensionAgrupacion } from '@/lib/agrupacion-multinivel';
 import { ExportarButton } from '@/components/shared/exportar-button';
 import { useUsuarioActual } from '@/lib/usuario-actual-context';
 import { puedeEditar } from '@/lib/auth';
@@ -51,6 +55,7 @@ const OPCIONES_AGRUPACION_LIBERACION: OpcionAgrupacion[] = [
   { key: 'proyecto', label: 'Proyecto' },
   { key: 'estadoLiberacion', label: 'Estado de liberación' },
   { key: 'estadoEntrega', label: 'Estado de entrega' },
+  { key: 'inspector', label: 'Inspector de calidad' },
 ];
 
 type VistaLib = 'contratista' | 'global' | 'personalizada';
@@ -130,11 +135,14 @@ export function ValidacionTaller({
   const [filtroEstado, setFiltroEstado] = useState<ResultadoValidacion | 'todos'>('todos');
   const [filtroSub, setFiltroSub] = useState('todos');
   const [filtroProyecto, setFiltroProyecto] = useState('todos');
+  const [filtroInspector, setFiltroInspector] = useState('todos');
   const [buscadorUnidad, setBuscadorUnidad] = useState('');
   const [nivelesAgrupacion, setNivelesAgrupacion] = useState<string[]>([]);
   const [vista, setVista] = useState<VistaLib>('contratista');
   const [columnasExport, setColumnasExport] = useState<string[]>(COLUMNAS_LIBERACION_DEFAULT);
   const subName = (id: string) => subs.find((s) => s.id === id)?.nombre || '—';
+  const colapsoContratista = useCollapseState();
+  const colapsoPersonalizada = useCollapseState();
 
   // Si se navegó aquí pidiendo abrir un taller específico (desde Planificación), abre su modal automáticamente
   useEffect(() => {
@@ -178,6 +186,10 @@ export function ValidacionTaller({
     const tallerIdsDelSub = new Set(talleres.filter((t) => t.subcontratistaId === filtroSub).map((t) => t.id));
     semanaValidaciones = semanaValidaciones.filter((v) => tallerIdsDelSub.has(v.tallerId));
   }
+  if (filtroInspector !== 'todos') {
+    const tallerIdsDelInspector = new Set(talleres.filter((t) => t.inspector === filtroInspector).map((t) => t.id));
+    semanaValidaciones = semanaValidaciones.filter((v) => tallerIdsDelInspector.has(v.tallerId));
+  }
   if (buscadorUnidad.trim()) {
     const tallerIdsMatch = new Set(talleres.filter((t) => unidadMatchesSearch(t.edificio, t.esGeneral ? 'general' : t.unidad, buscadorUnidad)).map((t) => t.id));
     semanaValidaciones = semanaValidaciones.filter((v) => tallerIdsMatch.has(v.tallerId));
@@ -209,16 +221,24 @@ export function ValidacionTaller({
     return [...map.entries()].map(([subId, items]) => ({ subId, items }));
   }, [filas]);
 
+  const inspectoresDisponibles = useMemo(
+    () => [...new Set(talleres.map((t) => t.inspector).filter(Boolean))].sort(),
+    [talleres]
+  );
+
   const dimensionesDisponibles: Record<string, DimensionAgrupacion<FilaLib>> = {
     contratista: { key: 'contratista', label: 'Subcontratista', getValue: (f) => subName(f.t.subcontratistaId) },
     proyecto: { key: 'proyecto', label: 'Proyecto', getValue: (f) => f.t.proyecto },
     estadoLiberacion: { key: 'estadoLiberacion', label: 'Estado de liberación', getValue: (f) => f.v.resultado },
     estadoEntrega: { key: 'estadoEntrega', label: 'Estado de entrega', getValue: (f) => f.ent?.estado || 'NO ENTREGADO' },
+    inspector: { key: 'inspector', label: 'Inspector de calidad', getValue: (f) => f.t.inspector || 'Sin asignar' },
   };
   const arbolPersonalizado = useMemo(() => {
     const dims = nivelesAgrupacion.map((k) => dimensionesDisponibles[k]).filter(Boolean);
     return construirArbolAgrupado(filas, dims);
   }, [filas, nivelesAgrupacion]);
+  const keysPorNivelPersonalizada = useMemo(() => keysPorNivel(arbolPersonalizado), [arbolPersonalizado]);
+  const nivelesConLabel = nivelesAgrupacion.map((k, i) => ({ label: dimensionesDisponibles[k]?.label || k, keys: keysPorNivelPersonalizada[i] || [] }));
 
   const periodoLabelExport = `Semana del ${weekRangeLabel(semanaActual)}`;
   const subFiltroObj = filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null;
@@ -231,10 +251,16 @@ export function ValidacionTaller({
           <div className="mb-4 text-[12px] text-muted-foreground">Semana del {weekRangeLabel(semanaActual)} — gestiona la liberación del área para trabajar y la entrega del trabajo por el subcontratista.</div>
 
           <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2.5">
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               <Button size="sm" variant={vista === 'contratista' ? 'default' : 'outline'} onClick={() => setVista('contratista')}>Por contratista</Button>
               <Button size="sm" variant={vista === 'global' ? 'default' : 'outline'} onClick={() => setVista('global')}>Vista global</Button>
               <Button size="sm" variant={vista === 'personalizada' ? 'default' : 'outline'} onClick={() => setVista('personalizada')}>Agrupación personalizada</Button>
+              {vista === 'contratista' && (
+                <ExpandCollapseAllButtons onExpandAll={colapsoContratista.expandAll} onCollapseAll={() => colapsoContratista.collapseAll(gruposPorContratista.map((g) => g.subId))} />
+              )}
+              {vista === 'personalizada' && (
+                <ExpandCollapseAllButtons onExpandAll={colapsoPersonalizada.expandAll} onCollapseAll={() => colapsoPersonalizada.collapseAll(todasLasKeysAgrupables(arbolPersonalizado))} />
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               <UnidadSearchBox value={buscadorUnidad} onChange={setBuscadorUnidad} />
@@ -246,6 +272,7 @@ export function ValidacionTaller({
                   {subs.map((s) => <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <InspectorFilter value={filtroInspector} onChange={setFiltroInspector} opciones={inspectoresDisponibles} />
               {vista === 'personalizada' && (
                 <AgrupacionConfigButton opciones={OPCIONES_AGRUPACION_LIBERACION} seleccion={nivelesAgrupacion} onChange={setNivelesAgrupacion} />
               )}
@@ -265,10 +292,18 @@ export function ValidacionTaller({
             ))}
           </div>
 
+          {vista === 'personalizada' && nivelesConLabel.length > 0 && (
+            <div className="mb-3.5">
+              <NivelCollapseControls niveles={nivelesConLabel} onCollapseKeys={colapsoPersonalizada.collapseKeys} onExpandKeys={colapsoPersonalizada.expandKeys} />
+            </div>
+          )}
+
           {vista === 'contratista' && (
             gruposPorContratista.length ? gruposPorContratista.map(({ subId, items }) => (
               <CollapsibleGroup
                 key={subId}
+                open={!colapsoContratista.isCollapsed(subId)}
+                onToggle={() => colapsoContratista.toggle(subId)}
                 header={
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <SubAvatar name={subName(subId)} id={subId} />{subName(subId)}
@@ -288,6 +323,8 @@ export function ValidacionTaller({
           {vista === 'personalizada' && (
             <ArbolAgrupado
               nodos={arbolPersonalizado}
+              isCollapsed={colapsoPersonalizada.isCollapsed}
+              onToggle={colapsoPersonalizada.toggle}
               renderHoja={(items) => <LiberacionTabla filas={items} showSub subName={subName} onGestionar={(f) => setGestionando({ v: f.v, t: f.t, ent: f.ent })} />}
             />
           )}
