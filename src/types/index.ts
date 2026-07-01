@@ -43,6 +43,17 @@ export interface Taller {
   creadoPor?: string; // nombre de quién planificó este taller
   creadoPorId?: string;
   creadoEn?: string; // ISO datetime
+  /** Semana (lunes ISO) en la que se planificó ESTE taller por primera vez, antes de cualquier
+   * arrastre. Se fija la primera vez que el taller se mueve por atraso y ya no se vuelve a tocar,
+   * para poder saber siempre de dónde viene un taller que se ha venido arrastrando. */
+  semanaOriginal?: string;
+  /** Día de la semana original (antes del primer arrastre) */
+  diaOriginal?: DiaSemana;
+  /** Cuántas veces se ha movido este taller de una semana atrasada a la semana vigente por no
+   * haberse completado a tiempo. 0 o undefined = nunca se ha arrastrado. */
+  vecesArrastrado?: number;
+  /** ISO datetime del último arrastre registrado */
+  ultimoArrastreEn?: string;
 }
 
 export type ChecklistValue = 'SI' | 'NO' | 'N/A' | 'PENDIENTE';
