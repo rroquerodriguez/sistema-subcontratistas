@@ -1,6 +1,6 @@
 import type { Subcontratista, FechaPrometida } from '@/types';
 import { fmtDate, fmtDateTime, todayISO, abrirReporteParaImprimir } from './utils-app';
-import { diasAtrasoFechaPrometida, estaAtrasada, estaCumplida } from './stats-engine';
+import { diasAtrasoFechaPrometida, diasAtrasoOriginal, fechaPrometidaOriginal, estaAtrasada, estaCumplida } from './stats-engine';
 
 function esc(s: string): string {
   return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -23,9 +23,14 @@ function photosHtml(fotos: string[] | undefined): string {
 
 function fechaCardHtml(fp: FechaPrometida, showSub: boolean, subName: (id: string) => string): string {
   const dias = diasAtrasoFechaPrometida(fp);
+  const diasOriginal = diasAtrasoOriginal(fp);
+  const reprogramaciones = fp.historialFechas.length;
   const cumplida = estaCumplida(fp);
   const atrasada = estaAtrasada(fp);
   const estadoBadge = cumplida ? badge('Cumplida', 'badge-green') : atrasada ? badge('Atrasada', 'badge-red') : badge('Pendiente', 'badge-slate');
+  const atrasoOriginalBadge = reprogramaciones > 0 && diasOriginal !== null && diasOriginal > 0
+    ? ` ${badge(`${diasOriginal} día${diasOriginal === 1 ? '' : 's'} desde original (${reprogramaciones}x)`, 'badge-amber')}`
+    : '';
 
   const historialHtml = fp.historialFechas.length
     ? `
@@ -59,10 +64,10 @@ function fechaCardHtml(fp: FechaPrometida, showSub: boolean, subName: (id: strin
     <div class="taller-card">
       <div class="taller-card-head">
         <div class="taller-card-title">${showSub ? `${esc(subName(fp.subcontratistaId))} — ` : ''}${esc(fp.descripcion)}</div>
-        <div class="taller-card-badges">${estadoBadge}${dias !== null && dias > 0 ? ` ${badge(`${dias} día${dias === 1 ? '' : 's'} atraso`, cumplida ? 'badge-slate' : 'badge-red')}` : ''}</div>
+        <div class="taller-card-badges">${estadoBadge}${dias !== null && dias > 0 ? ` ${badge(`${dias} día${dias === 1 ? '' : 's'} atraso`, cumplida ? 'badge-slate' : 'badge-red')}` : ''}${atrasoOriginalBadge}</div>
       </div>
       <div class="taller-card-meta">
-        Fecha prometida: <strong>${esc(fmtDate(fp.fechaPrometidaActual))}</strong>
+        ${reprogramaciones > 0 ? `Compromiso original: <strong>${esc(fmtDate(fechaPrometidaOriginal(fp)))}</strong> &nbsp;·&nbsp; ` : ''}Fecha prometida: <strong>${esc(fmtDate(fp.fechaPrometidaActual))}</strong>
         ${fp.fechaCumplida ? ` &nbsp;·&nbsp; Cumplida: <strong>${esc(fmtDate(fp.fechaCumplida))}</strong>` : ''}
         &nbsp;·&nbsp; Unidades: <strong>${fp.esGeneral ? 'GENERAL' : esc(fp.unidades) || '—'}</strong>
       </div>

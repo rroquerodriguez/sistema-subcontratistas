@@ -1,17 +1,19 @@
 import * as XLSX from 'xlsx';
 import type { Subcontratista, FechaPrometida } from '@/types';
 import { fmtDate, fmtDateTime, excelDateValue, todayISO } from './utils-app';
-import { diasAtrasoFechaPrometida, estaAtrasada, estaCumplida } from './stats-engine';
+import { diasAtrasoFechaPrometida, diasAtrasoOriginal, fechaPrometidaOriginal, estaAtrasada, estaCumplida } from './stats-engine';
 
 export interface ColumnaFecha { key: string; label: string }
 
 export const COLUMNAS_FECHA: ColumnaFecha[] = [
   { key: 'descripcion', label: 'Descripción' },
   { key: 'unidades', label: 'Unidades / General' },
+  { key: 'fechaPrometidaOriginal', label: 'Fecha prometida original' },
   { key: 'fechaPrometida', label: 'Fecha prometida actual' },
   { key: 'fechaCumplida', label: 'Fecha cumplida' },
   { key: 'estado', label: 'Estado' },
-  { key: 'diasAtraso', label: 'Días de atraso' },
+  { key: 'diasAtraso', label: 'Días de atraso (vs. vigente)' },
+  { key: 'diasAtrasoOriginal', label: 'Días de atraso (vs. original)' },
   { key: 'cambios', label: 'Cambios de fecha' },
   { key: 'historial', label: 'Historial de cambios' },
   { key: 'comentarios', label: 'Comentarios de seguimiento' },
@@ -24,16 +26,19 @@ export const COLUMNAS_FECHA_DEFAULT = COLUMNAS_FECHA.map((c) => c.key);
 function fechaRow(fp: FechaPrometida, subName: (id: string) => string, showSub: boolean, columnas: string[]) {
   const incluye = (key: string) => columnas.includes(key);
   const dias = diasAtrasoFechaPrometida(fp);
+  const diasOriginal = diasAtrasoOriginal(fp);
   const cumplida = estaCumplida(fp);
   const atrasada = estaAtrasada(fp);
   const row: Record<string, string | number | Date | null> = {};
   if (showSub) row['Subcontratista'] = subName(fp.subcontratistaId);
   if (incluye('descripcion')) row['Descripción'] = fp.descripcion;
   if (incluye('unidades')) row['Unidades / General'] = fp.esGeneral ? 'GENERAL' : fp.unidades;
+  if (incluye('fechaPrometidaOriginal')) row['Fecha prometida original'] = excelDateValue(fechaPrometidaOriginal(fp));
   if (incluye('fechaPrometida')) row['Fecha prometida actual'] = excelDateValue(fp.fechaPrometidaActual);
   if (incluye('fechaCumplida')) row['Fecha cumplida'] = excelDateValue(fp.fechaCumplida);
   if (incluye('estado')) row['Estado'] = cumplida ? 'CUMPLIDA' : atrasada ? 'ATRASADA' : 'PENDIENTE';
-  if (incluye('diasAtraso')) row['Días de atraso'] = dias ?? '';
+  if (incluye('diasAtraso')) row['Días de atraso (vs. vigente)'] = dias ?? '';
+  if (incluye('diasAtrasoOriginal')) row['Días de atraso (vs. original)'] = diasOriginal ?? '';
   if (incluye('cambios')) row['Cambios de fecha'] = fp.historialFechas.length;
   if (incluye('historial')) row['Historial de cambios'] = fp.historialFechas.map((c) => `Antes: ${fmtDate(c.fecha)} (${fmtDateTime(c.registradoEn)})${c.motivo ? ` — ${c.motivo}` : ''}`).join(' | ');
   if (incluye('comentarios')) row['Comentarios de seguimiento'] = (fp.comentarios || []).map((c) => `${fmtDateTime(c.fecha)}: ${c.texto}`).join(' | ');

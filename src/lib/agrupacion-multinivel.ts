@@ -51,3 +51,36 @@ export function contarItems<T>(nodo: NodoAgrupado<T>): number {
   if (nodo.esHoja) return nodo.items.length;
   return nodo.hijos.reduce((sum, h) => sum + contarItems(h), 0);
 }
+
+/** Recolecta las keys de todos los nodos agrupables (no hoja) del árbol, en cualquier nivel.
+ * Útil para el botón global "Colapsar todo" / "Expandir todo". */
+export function todasLasKeysAgrupables<T>(nodos: NodoAgrupado<T>[]): string[] {
+  const keys: string[] = [];
+  const recorrer = (lista: NodoAgrupado<T>[]) => {
+    lista.forEach((n) => {
+      if (n.key === 'todos' && n.esHoja) return; // nodo raíz sin agrupación real, no es colapsable
+      keys.push(n.key);
+      if (!n.esHoja) recorrer(n.hijos);
+    });
+  };
+  recorrer(nodos);
+  return keys;
+}
+
+/** Agrupa las keys de los nodos por profundidad (0 = nivel más externo). El resultado es un
+ * arreglo donde cada posición contiene las keys de ese nivel de agrupación — permite ofrecer
+ * un control de "colapsar/expandir" específico por cada nivel elegido (ej: colapsar todos los
+ * subcontratistas pero dejar los proyectos abiertos). */
+export function keysPorNivel<T>(nodos: NodoAgrupado<T>[]): string[][] {
+  const niveles: string[][] = [];
+  const recorrer = (lista: NodoAgrupado<T>[], profundidad: number) => {
+    lista.forEach((n) => {
+      if (n.key === 'todos' && n.esHoja) return;
+      if (!niveles[profundidad]) niveles[profundidad] = [];
+      niveles[profundidad].push(n.key);
+      if (!n.esHoja) recorrer(n.hijos, profundidad + 1);
+    });
+  };
+  recorrer(nodos, 0);
+  return niveles;
+}

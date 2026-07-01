@@ -506,6 +506,31 @@ export function diasAtrasoFechaPrometida(fp: FechaPrometida): number | null {
   return atraso !== null ? Math.max(0, atraso) : null;
 }
 
+/** La primera fecha que se prometió, antes de cualquier reprogramación. Se deriva del historial:
+ * si nunca se ha modificado, la fecha original es la misma fecha vigente; si ya se modificó una o
+ * más veces, la original es el primer valor que quedó registrado en el historial (el más antiguo). */
+export function fechaPrometidaOriginal(fp: FechaPrometida): string {
+  if (!fp.historialFechas?.length) return fp.fechaPrometidaActual;
+  return fp.historialFechas[0].fecha;
+}
+
+/** Cuántas veces se ha reprogramado (movido) la fecha prometida desde que se creó el registro */
+export function vecesReprogramada(fp: FechaPrometida): number {
+  return fp.historialFechas?.length || 0;
+}
+
+/** Días de atraso medidos SIEMPRE contra el compromiso original, sin importar cuántas veces se haya
+ * reprogramado la fecha vigente. A diferencia de diasAtrasoFechaPrometida (que se resetea cada vez que
+ * se mueve la fecha), este número solo puede crecer — es la métrica de rendición de cuentas: cuánto se
+ * ha alejado la entrega real del primer compromiso, independientemente de cuántas prórrogas hubo. */
+export function diasAtrasoOriginal(fp: FechaPrometida): number | null {
+  const original = fechaPrometidaOriginal(fp);
+  if (!original) return null;
+  const hasta = fp.fechaCumplida || todayISO();
+  const atraso = diffDays(original, hasta);
+  return atraso !== null ? Math.max(0, atraso) : null;
+}
+
 export function estaAtrasada(fp: FechaPrometida): boolean {
   if (fp.fechaCumplida) return fp.fechaCumplida > fp.fechaPrometidaActual;
   return fp.fechaPrometidaActual < todayISO();
