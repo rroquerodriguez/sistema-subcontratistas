@@ -10,12 +10,15 @@ import { SubAvatar } from '@/components/shared/sub-avatar';
 import { PhotoViewer } from '@/components/shared/photo-viewer';
 import { ProjectFilter } from '@/components/shared/project-filter';
 import { CollapsibleGroup } from '@/components/shared/collapsible-group';
+import { ExpandCollapseAllButtons } from '@/components/shared/expand-collapse-all-button';
+import { NivelCollapseControls } from '@/components/shared/nivel-collapse-controls';
+import { useCollapseState } from '@/lib/use-collapse-state';
 import { SortableTableHead } from '@/components/shared/sortable-table-head';
 import { useSortableFilterableTable, type ColumnConfig } from '@/lib/use-sortable-table';
 import { UnidadSearchBox, unidadMatchesSearch } from '@/components/shared/unidad-search-box';
 import { AgrupacionConfigButton, type OpcionAgrupacion } from '@/components/shared/agrupacion-config-button';
 import { ArbolAgrupado } from '@/components/shared/arbol-agrupado';
-import { construirArbolAgrupado, type DimensionAgrupacion } from '@/lib/agrupacion-multinivel';
+import { construirArbolAgrupado, todasLasKeysAgrupables, keysPorNivel, type DimensionAgrupacion } from '@/lib/agrupacion-multinivel';
 import { ExportarButton } from '@/components/shared/exportar-button';
 import { useUsuarioActual } from '@/lib/usuario-actual-context';
 import { puedeEditar } from '@/lib/auth';
@@ -101,6 +104,8 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
   const [vista, setVista] = useState<'contratista' | 'personalizada'>('contratista');
   const [columnasExport, setColumnasExport] = useState<string[]>(COLUMNAS_QUEJA_DEFAULT);
   const subName = (id: string) => subs.find((s) => s.id === id)?.nombre || '—';
+  const colapsoContratista = useCollapseState();
+  const colapsoPersonalizada = useCollapseState();
 
   const save = async (q: Queja) => {
     const existing = quejas.find((x) => x.id === q.id);
@@ -146,6 +151,8 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
     const dims = nivelesAgrupacion.map((k) => dimensionesDisponibles[k]).filter(Boolean);
     return construirArbolAgrupado(sorted, dims);
   }, [sorted, nivelesAgrupacion]);
+  const keysPorNivelPersonalizada = useMemo(() => keysPorNivel(arbolPersonalizado), [arbolPersonalizado]);
+  const nivelesConLabel = nivelesAgrupacion.map((k, i) => ({ label: dimensionesDisponibles[k]?.label || k, keys: keysPorNivelPersonalizada[i] || [] }));
 
   return (
     <div>
@@ -168,6 +175,12 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
           <div className="mb-3.5 flex flex-wrap items-center gap-2">
             <Button size="sm" variant={vista === 'contratista' ? 'default' : 'outline'} onClick={() => setVista('contratista')}>Por contratista</Button>
             <Button size="sm" variant={vista === 'personalizada' ? 'default' : 'outline'} onClick={() => setVista('personalizada')}>Agrupación personalizada</Button>
+            {vista === 'contratista' && (
+              <ExpandCollapseAllButtons onExpandAll={colapsoContratista.expandAll} onCollapseAll={() => colapsoContratista.collapseAll(Object.keys(grouped))} />
+            )}
+            {vista === 'personalizada' && (
+              <ExpandCollapseAllButtons onExpandAll={colapsoPersonalizada.expandAll} onCollapseAll={() => colapsoPersonalizada.collapseAll(todasLasKeysAgrupables(arbolPersonalizado))} />
+            )}
             <UnidadSearchBox value={buscadorUnidad} onChange={setBuscadorUnidad} />
             <ProjectFilter value={filtroProyecto} onChange={setFiltroProyecto} />
             <Select value={filtroSub} onValueChange={setFiltroSub}>
@@ -182,12 +195,20 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
             )}
           </div>
 
+          {vista === 'personalizada' && nivelesConLabel.length > 0 && (
+            <div className="mb-3.5">
+              <NivelCollapseControls niveles={nivelesConLabel} onCollapseKeys={colapsoPersonalizada.collapseKeys} onExpandKeys={colapsoPersonalizada.expandKeys} />
+            </div>
+          )}
+
           {vista === 'contratista' && (
             <>
               {Object.keys(grouped).length === 0 && <div className="py-10 text-center text-sm text-muted-foreground">No hay incidencias registradas.</div>}
               {Object.entries(grouped).map(([subId, list]) => (
                 <CollapsibleGroup
                   key={subId}
+                  open={!colapsoContratista.isCollapsed(subId)}
+                  onToggle={() => colapsoContratista.toggle(subId)}
                   header={
                     <div className="flex items-center gap-2">
                       <SubAvatar name={subName(subId)} id={subId} />
@@ -205,6 +226,8 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
           {vista === 'personalizada' && (
             <ArbolAgrupado
               nodos={arbolPersonalizado}
+              isCollapsed={colapsoPersonalizada.isCollapsed}
+              onToggle={colapsoPersonalizada.toggle}
               renderHoja={(items) => <IncidenciasTabla list={items} onEdit={setEditing} onRemove={remove} onViewPhotos={setViewPhotos} soloLectura={soloLectura} />}
             />
           )}
