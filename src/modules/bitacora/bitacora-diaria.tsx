@@ -14,13 +14,17 @@ import { SubAvatar } from '@/components/shared/sub-avatar';
 import { WeekCalendarPicker } from '@/components/shared/week-calendar-picker';
 import { MonthPicker } from '@/components/shared/month-picker';
 import { ProjectFilter } from '@/components/shared/project-filter';
+import { InspectorFilter } from '@/components/shared/inspector-filter';
 import { CollapsibleGroup } from '@/components/shared/collapsible-group';
+import { ExpandCollapseAllButtons } from '@/components/shared/expand-collapse-all-button';
+import { NivelCollapseControls } from '@/components/shared/nivel-collapse-controls';
+import { useCollapseState } from '@/lib/use-collapse-state';
 import { SortableTableHead } from '@/components/shared/sortable-table-head';
 import { useSortableFilterableTable, type ColumnConfig } from '@/lib/use-sortable-table';
 import { UnidadSearchBox, unidadMatchesSearch } from '@/components/shared/unidad-search-box';
 import { AgrupacionConfigButton, type OpcionAgrupacion } from '@/components/shared/agrupacion-config-button';
 import { ArbolAgrupado } from '@/components/shared/arbol-agrupado';
-import { construirArbolAgrupado, type DimensionAgrupacion } from '@/lib/agrupacion-multinivel';
+import { construirArbolAgrupado, todasLasKeysAgrupables, keysPorNivel, type DimensionAgrupacion } from '@/lib/agrupacion-multinivel';
 import { ExportarButton } from '@/components/shared/exportar-button';
 import { BitacoraForm } from './bitacora-form';
 import { dbSet } from '@/lib/storage';
@@ -51,6 +55,7 @@ const OPCIONES_AGRUPACION_BITACORA: OpcionAgrupacion[] = [
   { key: 'contratista', label: 'Subcontratista' },
   { key: 'estadoTrabajo', label: 'Estado del trabajo' },
   { key: 'personalAsignado', label: 'Personal asignado' },
+  { key: 'inspector', label: 'Inspector de calidad' },
 ];
 
 function RegistrosTabla({
@@ -125,6 +130,7 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
   const [viewPhotos, setViewPhotos] = useState<string[] | null>(null);
   const [filtroSub, setFiltroSub] = useState('todos');
   const [filtroProyecto, setFiltroProyecto] = useState('todos');
+  const [filtroInspector, setFiltroInspector] = useState('todos');
   const [buscadorUnidad, setBuscadorUnidad] = useState('');
   const [nivelesAgrupacion, setNivelesAgrupacion] = useState<string[]>([]);
   const [vistaRegistros, setVistaRegistros] = useState<'contratista' | 'personalizada'>('contratista');
@@ -133,6 +139,9 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
   const [semanaSeleccionada, setSemanaSeleccionada] = useState(semanaActual);
   const [mesSeleccionado, setMesSeleccionado] = useState(mesKeyActual());
   const [columnasExport, setColumnasExport] = useState<string[]>(COLUMNAS_BITACORA_DEFAULT);
+  const colapsoAvance = useCollapseState();
+  const colapsoContratista = useCollapseState();
+  const colapsoPersonalizada = useCollapseState();
 
   const subName = (id: string) => subs.find((s) => s.id === id)?.nombre || '—';
   const tallerLabel = (id: string) => { const t = talleres.find((x) => x.id === id); return t ? `${subName(t.subcontratistaId)} — ${t.edificio} ${t.unidad}` : '—'; };
@@ -201,6 +210,7 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
   else filtered = filtered.filter((b) => semanasDelMesSeleccionado.includes(mondayOf(b.fecha)));
   filtered = filtroSub === 'todos' ? filtered : filtered.filter((b) => talleres.find((t) => t.id === b.tallerId)?.subcontratistaId === filtroSub);
   filtered = filtroProyecto === 'todos' ? filtered : filtered.filter((b) => talleres.find((t) => t.id === b.tallerId)?.proyecto === filtroProyecto);
+  filtered = filtroInspector === 'todos' ? filtered : filtered.filter((b) => talleres.find((t) => t.id === b.tallerId)?.inspector === filtroInspector);
   if (buscadorUnidad.trim()) {
     filtered = filtered.filter((b) => {
       const t = talleres.find((x) => x.id === b.tallerId);
@@ -221,6 +231,11 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
     [filtered, filtroSub, subs, periodoLabel]
   );
 
+  const inspectoresDisponibles = useMemo(
+    () => [...new Set(talleres.map((t) => t.inspector).filter(Boolean))].sort(),
+    [talleres]
+  );
+
   const sortedPorContratista = useMemo(() => {
     const ids = [...new Set(sorted.map((b) => talleres.find((t) => t.id === b.tallerId)?.subcontratistaId).filter(Boolean))] as string[];
     return ids.map((id) => ({ id, nombre: subName(id), items: sorted.filter((b) => talleres.find((t) => t.id === b.tallerId)?.subcontratistaId === id) }));
@@ -230,14 +245,17 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
     contratista: { key: 'contratista', label: 'Subcontratista', getValue: (b) => { const t = talleres.find((x) => x.id === b.tallerId); return t ? subName(t.subcontratistaId) : '—'; } },
     estadoTrabajo: { key: 'estadoTrabajo', label: 'Estado del trabajo', getValue: (b) => b.completo || 'SIN REGISTRO' },
     personalAsignado: { key: 'personalAsignado', label: 'Personal asignado', getValue: (b) => (b.llego === 'SI' ? 'Asignado' : 'Sin personal') },
+    inspector: { key: 'inspector', label: 'Inspector de calidad', getValue: (b) => { const t = talleres.find((x) => x.id === b.tallerId); return t?.inspector || 'Sin asignar'; } },
   };
   const arbolPersonalizado = useMemo(() => {
     const dims = nivelesAgrupacion.map((k) => dimensionesDisponibles[k]).filter(Boolean);
     return construirArbolAgrupado(sorted, dims);
   }, [sorted, nivelesAgrupacion]);
+  const keysPorNivelPersonalizada = useMemo(() => keysPorNivel(arbolPersonalizado), [arbolPersonalizado]);
+  const nivelesConLabel = nivelesAgrupacion.map((k, i) => ({ label: dimensionesDisponibles[k]?.label || k, keys: keysPorNivelPersonalizada[i] || [] }));
 
   const talleresSemana = talleres.filter((t) =>
-    t.semana === semanaActual && (filtroSub === 'todos' || t.subcontratistaId === filtroSub) && (filtroProyecto === 'todos' || t.proyecto === filtroProyecto)
+    t.semana === semanaActual && (filtroSub === 'todos' || t.subcontratistaId === filtroSub) && (filtroProyecto === 'todos' || t.proyecto === filtroProyecto) && (filtroInspector === 'todos' || t.inspector === filtroInspector)
   );
 
   const talleresSemanaPorContratista = useMemo(() => {
@@ -262,6 +280,7 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
                   {subs.map((s) => <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <InspectorFilter value={filtroInspector} onChange={setFiltroInspector} opciones={inspectoresDisponibles} />
             </div>
             <Button onClick={() => setShowNew(true)} disabled={soloLectura}><Plus size={14} />Nuevo registro</Button>
           </div>
@@ -276,9 +295,15 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
               {talleresSemana.length === 0 ? (
                 <div className="py-10 text-center text-sm text-muted-foreground">No hay talleres planificados esta semana para mostrar avance.</div>
               ) : (
-                talleresSemanaPorContratista.map((g) => (
+                <>
+                  <div className="mb-3">
+                    <ExpandCollapseAllButtons onExpandAll={colapsoAvance.expandAll} onCollapseAll={() => colapsoAvance.collapseAll(talleresSemanaPorContratista.map((g) => g.id))} />
+                  </div>
+                  {talleresSemanaPorContratista.map((g) => (
                   <CollapsibleGroup
                     key={g.id}
+                    open={!colapsoAvance.isCollapsed(g.id)}
+                    onToggle={() => colapsoAvance.toggle(g.id)}
                     header={
                       <div className="flex items-center gap-2 text-sm font-medium">
                         <SubAvatar name={g.nombre} id={g.id} />{g.nombre}
@@ -324,7 +349,8 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
                       })}
                     </div>
                   </CollapsibleGroup>
-                ))
+                  ))}
+                </>
               )}
             </TabsContent>
 
@@ -352,11 +378,23 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
               <div className="mb-3.5 flex flex-wrap items-center gap-2">
                 <Button size="sm" variant={vistaRegistros === 'contratista' ? 'default' : 'outline'} onClick={() => setVistaRegistros('contratista')}>Por contratista</Button>
                 <Button size="sm" variant={vistaRegistros === 'personalizada' ? 'default' : 'outline'} onClick={() => setVistaRegistros('personalizada')}>Agrupación personalizada</Button>
+                {vistaRegistros === 'contratista' && (
+                  <ExpandCollapseAllButtons onExpandAll={colapsoContratista.expandAll} onCollapseAll={() => colapsoContratista.collapseAll(sortedPorContratista.map((g) => g.id))} />
+                )}
+                {vistaRegistros === 'personalizada' && (
+                  <ExpandCollapseAllButtons onExpandAll={colapsoPersonalizada.expandAll} onCollapseAll={() => colapsoPersonalizada.collapseAll(todasLasKeysAgrupables(arbolPersonalizado))} />
+                )}
                 <UnidadSearchBox value={buscadorUnidad} onChange={setBuscadorUnidad} />
                 {vistaRegistros === 'personalizada' && (
                   <AgrupacionConfigButton opciones={OPCIONES_AGRUPACION_BITACORA} seleccion={nivelesAgrupacion} onChange={setNivelesAgrupacion} />
                 )}
               </div>
+
+              {vistaRegistros === 'personalizada' && nivelesConLabel.length > 0 && (
+                <div className="mb-3.5">
+                  <NivelCollapseControls niveles={nivelesConLabel} onCollapseKeys={colapsoPersonalizada.collapseKeys} onExpandKeys={colapsoPersonalizada.expandKeys} />
+                </div>
+              )}
 
               <div className="mb-3.5 rounded-lg bg-muted/30 px-3.5 py-2.5 text-[12.5px] leading-relaxed">
                 {parrafoAnalisis}
@@ -366,6 +404,8 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
                 sortedPorContratista.length ? sortedPorContratista.map((g) => (
                   <CollapsibleGroup
                     key={g.id}
+                    open={!colapsoContratista.isCollapsed(g.id)}
+                    onToggle={() => colapsoContratista.toggle(g.id)}
                     header={
                       <div className="flex items-center gap-2 text-sm font-medium">
                         <SubAvatar name={g.nombre} id={g.id} />{g.nombre}
@@ -383,6 +423,8 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
               {vistaRegistros === 'personalizada' && (
                 <ArbolAgrupado
                   nodos={arbolPersonalizado}
+                  isCollapsed={colapsoPersonalizada.isCollapsed}
+                  onToggle={colapsoPersonalizada.toggle}
                   renderHoja={(items) => <RegistrosTabla items={items} tallerLabel={tallerLabel} onEdit={setEditing} onRemove={remove} onViewPhotos={setViewPhotos} soloLectura={soloLectura} />}
                 />
               )}
