@@ -11,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { SubAvatar } from '@/components/shared/sub-avatar';
 import { CollapsibleGroup } from '@/components/shared/collapsible-group';
+import { ExpandCollapseAllButtons } from '@/components/shared/expand-collapse-all-button';
+import { useCollapseState } from '@/lib/use-collapse-state';
 import { SortableTableHead } from '@/components/shared/sortable-table-head';
 import { useSortableFilterableTable, type ColumnConfig } from '@/lib/use-sortable-table';
 import { MultiActividadForm, type MultiActividadRow } from './multi-actividad-form';
@@ -72,6 +74,7 @@ export function CatalogoTalleres({ subs, catalogo, setCatalogo, showToast }: Cat
   const [subiendoPlantilla, setSubiendoPlantilla] = useState(false);
   const [previewPlantilla, setPreviewPlantilla] = useState<FilaCatalogoResultado | null>(null);
   const plantillaInputRef = useRef<HTMLInputElement>(null);
+  const colapso = useCollapseState();
 
   const openEdit = (t: TallerCatalogo) => {
     setEditing(t);
@@ -150,13 +153,18 @@ export function CatalogoTalleres({ subs, catalogo, setCatalogo, showToast }: Cat
           </div>
 
           <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2">
-            <Select value={filtroSub} onValueChange={setFiltroSub}>
-              <SelectTrigger className="h-9 w-[220px] text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los subcontratistas</SelectItem>
-                {subs.map((s) => <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Select value={filtroSub} onValueChange={setFiltroSub}>
+                <SelectTrigger className="h-9 w-[220px] text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los subcontratistas</SelectItem>
+                  {subs.map((s) => <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {grouped.length > 0 && (
+                <ExpandCollapseAllButtons onExpandAll={colapso.expandAll} onCollapseAll={() => colapso.collapseAll(grouped.map((g) => g.sub.id))} />
+              )}
+            </div>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => setShowMulti(true)} disabled={soloLectura}><Plus size={14} />Agregar actividades</Button>
               <Button variant="outline" onClick={() => descargarPlantillaCatalogo(subs)}>
@@ -183,6 +191,8 @@ export function CatalogoTalleres({ subs, catalogo, setCatalogo, showToast }: Cat
             grouped.map(({ sub, items }) => (
               <CollapsibleGroup
                 key={sub.id}
+                open={!colapso.isCollapsed(sub.id)}
+                onToggle={() => colapso.toggle(sub.id)}
                 header={
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <SubAvatar name={sub.nombre} id={sub.id} />{sub.nombre}
