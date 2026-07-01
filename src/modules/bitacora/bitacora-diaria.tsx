@@ -29,6 +29,7 @@ import { ExportarButton } from '@/components/shared/exportar-button';
 import { BitacoraForm } from './bitacora-form';
 import { dbSet } from '@/lib/storage';
 import { fmtDate, fmtDateTime, uid, todayISO, mesKeyActual, mesLabel, semanasDelMes, weekRangeLabel, mondayOf } from '@/lib/utils-app';
+import { DIAS_SEMANA } from '@/lib/seed-data';
 import { buildParrafoAnalisisBitacora, quejasDelTaller } from '@/lib/stats-engine';
 import { exportBitacoraExcel, COLUMNAS_BITACORA, COLUMNAS_BITACORA_DEFAULT } from '@/lib/export-bitacora-excel';
 import { exportBitacoraPDF } from '@/lib/export-bitacora-pdf';
@@ -131,6 +132,7 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
   const [filtroSub, setFiltroSub] = useState('todos');
   const [filtroProyecto, setFiltroProyecto] = useState('todos');
   const [filtroInspector, setFiltroInspector] = useState('todos');
+  const [filtroDia, setFiltroDia] = useState('todos');
   const [buscadorUnidad, setBuscadorUnidad] = useState('');
   const [nivelesAgrupacion, setNivelesAgrupacion] = useState<string[]>([]);
   const [vistaRegistros, setVistaRegistros] = useState<'contratista' | 'personalizada'>('contratista');
@@ -211,6 +213,7 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
   filtered = filtroSub === 'todos' ? filtered : filtered.filter((b) => talleres.find((t) => t.id === b.tallerId)?.subcontratistaId === filtroSub);
   filtered = filtroProyecto === 'todos' ? filtered : filtered.filter((b) => talleres.find((t) => t.id === b.tallerId)?.proyecto === filtroProyecto);
   filtered = filtroInspector === 'todos' ? filtered : filtered.filter((b) => talleres.find((t) => t.id === b.tallerId)?.inspector === filtroInspector);
+  filtered = filtroDia === 'todos' ? filtered : filtered.filter((b) => talleres.find((t) => t.id === b.tallerId)?.dia === filtroDia);
   if (buscadorUnidad.trim()) {
     filtered = filtered.filter((b) => {
       const t = talleres.find((x) => x.id === b.tallerId);
@@ -255,7 +258,7 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
   const nivelesConLabel = nivelesAgrupacion.map((k, i) => ({ label: dimensionesDisponibles[k]?.label || k, keys: keysPorNivelPersonalizada[i] || [] }));
 
   const talleresSemana = talleres.filter((t) =>
-    t.semana === semanaActual && (filtroSub === 'todos' || t.subcontratistaId === filtroSub) && (filtroProyecto === 'todos' || t.proyecto === filtroProyecto) && (filtroInspector === 'todos' || t.inspector === filtroInspector)
+    t.semana === semanaActual && (filtroSub === 'todos' || t.subcontratistaId === filtroSub) && (filtroProyecto === 'todos' || t.proyecto === filtroProyecto) && (filtroInspector === 'todos' || t.inspector === filtroInspector) && (filtroDia === 'todos' || t.dia === filtroDia)
   );
 
   const talleresSemanaPorContratista = useMemo(() => {
@@ -281,6 +284,13 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
                 </SelectContent>
               </Select>
               <InspectorFilter value={filtroInspector} onChange={setFiltroInspector} opciones={inspectoresDisponibles} />
+              <Select value={filtroDia} onValueChange={setFiltroDia}>
+                <SelectTrigger className="h-9 w-[140px] text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los días</SelectItem>
+                  {DIAS_SEMANA.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <Button onClick={() => setShowNew(true)} disabled={soloLectura}><Plus size={14} />Nuevo registro</Button>
           </div>
