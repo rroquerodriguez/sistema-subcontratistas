@@ -200,14 +200,14 @@ export function FechasPrometidas({ subs, talleres, fechas, setFechas, showToast,
       </Card>
 
       <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader><DialogTitle>Nueva fecha prometida</DialogTitle></DialogHeader>
           <FechaPrometidaForm subs={subs} talleres={talleres} unidadesProyecto={unidadesProyecto} preselectSub={filtroSub !== 'todos' ? filtroSub : undefined} onSave={save} onCancel={() => setShowNew(false)} soloLectura={soloLectura} />
         </DialogContent>
       </Dialog>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader><DialogTitle>Editar fecha prometida</DialogTitle></DialogHeader>
           {editing && <FechaPrometidaForm subs={subs} talleres={talleres} unidadesProyecto={unidadesProyecto} initial={editing} onSave={save} onCancel={() => setEditing(null)} soloLectura={soloLectura} />}
         </DialogContent>

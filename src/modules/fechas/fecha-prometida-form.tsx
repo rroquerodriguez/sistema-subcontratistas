@@ -39,6 +39,9 @@ export function FechaPrometidaForm({ initial, subs, unidadesProyecto, preselectS
   );
   const [edificioNuevo, setEdificioNuevo] = useState('');
   const [unidadNueva, setUnidadNueva] = useState('');
+  const unidadesDeVivienda = unidadesProyecto.filter(
+    (u) => !edificioNuevo || u.edificio.toLowerCase() === edificioNuevo.trim().toLowerCase()
+  );
   const [showModificarFecha, setShowModificarFecha] = useState(false);
   const [nuevaFechaTmp, setNuevaFechaTmp] = useState('');
   const [motivoCambio, setMotivoCambio] = useState('');
@@ -223,9 +226,13 @@ export function FechaPrometidaForm({ initial, subs, unidadesProyecto, preselectS
               <Input
                 placeholder="Edificio / Tipo (ej: G6, THB5, o General)"
                 value={edificioNuevo}
+                list="edificios-proyecto-fp"
                 onChange={(e) => setEdificioNuevo(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); agregarUnidad(); } }}
               />
+              <datalist id="edificios-proyecto-fp">
+                {[...new Set(unidadesProyecto.map((u) => u.edificio).filter(Boolean))].map((v) => <option key={v} value={v} />)}
+              </datalist>
               <Input
                 placeholder="Unidad (ej: 101)"
                 value={unidadNueva}
@@ -234,7 +241,7 @@ export function FechaPrometidaForm({ initial, subs, unidadesProyecto, preselectS
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); agregarUnidad(); } }}
               />
               <datalist id="unidades-proyecto-fp">
-                {unidadesProyecto.map((u) => <option key={u.id} value={u.unidad}>{u.edificio} {u.unidad}</option>)}
+                {unidadesDeVivienda.map((u) => <option key={u.id} value={u.unidad} />)}
               </datalist>
               <Button type="button" variant="outline" onClick={agregarUnidad}><Plus size={14} />Agregar</Button>
             </div>
