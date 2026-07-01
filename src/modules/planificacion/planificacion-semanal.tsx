@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
-import { LayoutGrid, Pencil, Trash2, AlertTriangle, ArrowRightCircle, Download, Upload, CalendarDays } from 'lucide-react';
+import { LayoutGrid, Pencil, Trash2, AlertTriangle, ArrowRightCircle, Download, Upload, CalendarDays, History } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -9,14 +9,18 @@ import { SubAvatar } from '@/components/shared/sub-avatar';
 import { WeekCalendarPicker } from '@/components/shared/week-calendar-picker';
 import { MonthPicker } from '@/components/shared/month-picker';
 import { ProjectFilter } from '@/components/shared/project-filter';
+import { InspectorFilter } from '@/components/shared/inspector-filter';
 import { EstadoLiberacionBadge, EntregaBadge, PrioridadBadge, DiasPill } from '@/components/shared/status-badges';
 import { CollapsibleGroup } from '@/components/shared/collapsible-group';
+import { ExpandCollapseAllButtons } from '@/components/shared/expand-collapse-all-button';
+import { NivelCollapseControls } from '@/components/shared/nivel-collapse-controls';
+import { useCollapseState } from '@/lib/use-collapse-state';
 import { SortableTableHead } from '@/components/shared/sortable-table-head';
 import { useSortableFilterableTable, type ColumnConfig } from '@/lib/use-sortable-table';
 import { UnidadSearchBox, unidadMatchesSearch } from '@/components/shared/unidad-search-box';
 import { AgrupacionConfigButton, type OpcionAgrupacion } from '@/components/shared/agrupacion-config-button';
 import { ArbolAgrupado } from '@/components/shared/arbol-agrupado';
-import { construirArbolAgrupado, type DimensionAgrupacion } from '@/lib/agrupacion-multinivel';
+import { construirArbolAgrupado, todasLasKeysAgrupables, keysPorNivel, type DimensionAgrupacion } from '@/lib/agrupacion-multinivel';
 import { ExportarButton } from '@/components/shared/exportar-button';
 import { useUsuarioActual } from '@/lib/usuario-actual-context';
 import { puedeEditar } from '@/lib/auth';
@@ -32,9 +36,9 @@ import { exportPlanificacionSemanalPDF } from '@/lib/export-planificacion-semana
 import { exportPlanificacionPDF } from '@/lib/export-planificacion-pdf';
 import { ColumnSelector } from '@/components/shared/column-selector';
 import { CHECKLIST_ITEMS } from '@/lib/seed-data';
-import { uid, todayISO, weekRangeLabel, diffDays, diaLabel, mesKeyActual, mesLabel, semanasDelMes, fmtDate, fmtDateTime, fechaDeISODia } from '@/lib/utils-app';
+import { uid, todayISO, nowISODatetime, weekRangeLabel, diffDays, diaLabel, mesKeyActual, mesLabel, semanasDelMes, fmtDate, fmtDateTime, fechaDeISODia } from '@/lib/utils-app';
 import { fechasPrometidasAtrasadas, fechasPrometidasProximas } from '@/lib/stats-engine';
-import type { Subcontratista, Taller, Validacion, Entrega, FechaPrometida, TallerCatalogo, UnidadProyecto, TabId } from '@/types';
+import type { Subcontratista, Taller, Validacion, Entrega, FechaPrometida, TallerCatalogo, UnidadProyecto, TabId, DiaSemana } from '@/types';
 
 const DIAS_ORDER = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -44,6 +48,7 @@ const OPCIONES_AGRUPACION_PLANIFICACION: OpcionAgrupacion[] = [
   { key: 'dia', label: 'Día' },
   { key: 'prioridad', label: 'Prioridad' },
   { key: 'estadoLiberacion', label: 'Estado de liberación' },
+  { key: 'inspector', label: 'Inspector de calidad' },
 ];
 
 interface TallaresTablaProps {
@@ -85,6 +90,7 @@ function TallaresTabla({ items, showSub, subName, validacionDe, renderCells }: T
           <SortableTableHead label="Actividad" columnKey="actividad" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.actividad} onFilterChange={setFilter} />
           <SortableTableHead label="Prioridad" columnKey="prioridad" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterable={false} />
           <SortableTableHead label="Día" columnKey="dia" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterable={false} />
+          <TableHead>Arrastre</TableHead>
           <SortableTableHead label="Técnico" columnKey="tecnico" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.tecnico} onFilterChange={setFilter} />
           <SortableTableHead label="Inspector" columnKey="inspector" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.inspector} onFilterChange={setFilter} />
           <SortableTableHead label="F. Promesa" columnKey="fechaPromesa" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterable={false} />
@@ -100,7 +106,7 @@ function TallaresTabla({ items, showSub, subName, validacionDe, renderCells }: T
           </TableRow>
         ))}
         {!rows.length && (
-          <TableRow><TableCell colSpan={showSub ? 14 : 13} className="py-8 text-center text-sm text-muted-foreground">Sin talleres para mostrar.</TableCell></TableRow>
+          <TableRow><TableCell colSpan={showSub ? 15 : 14} className="py-8 text-center text-sm text-muted-foreground">Sin talleres para mostrar.</TableCell></TableRow>
         )}
       </TableBody>
     </Table>
@@ -138,6 +144,7 @@ export function PlanificacionSemanal({
   const [filtroSub, setFiltroSub] = useState('todos');
   const [filtroProyecto, setFiltroProyecto] = useState('todos');
   const [filtroDia, setFiltroDia] = useState('todos');
+  const [filtroInspector, setFiltroInspector] = useState('todos');
   const [buscadorUnidad, setBuscadorUnidad] = useState('');
   const [nivelesAgrupacion, setNivelesAgrupacion] = useState<string[]>([]);
   const [vistaExportar, setVistaExportar] = useState<'tabla' | 'semanal'>('tabla');
@@ -146,7 +153,12 @@ export function PlanificacionSemanal({
   const [subiendoPlantilla, setSubiendoPlantilla] = useState(false);
   const [columnasExport, setColumnasExport] = useState<string[]>(COLUMNAS_PLANIFICACION_DEFAULT);
   const [previewPlantilla, setPreviewPlantilla] = useState<{ talleres: Omit<Taller, 'id' | 'semana'>[]; totalFilas: number; erroresFila: { fila: number; motivo: string }[] } | null>(null);
+  const [arrastreModal, setArrastreModal] = useState<{ talleres: Taller[]; dias: Record<string, DiaSemana> } | null>(null);
+  const [diaMasivoArrastre, setDiaMasivoArrastre] = useState<DiaSemana | ''>('');
   const plantillaInputRef = useRef<HTMLInputElement>(null);
+  const colapsoContratista = useCollapseState();
+  const colapsoSemanal = useCollapseState();
+  const colapsoPersonalizada = useCollapseState();
 
   const semanasDelMesActual = useMemo(() => semanasDelMes(mesActual), [mesActual]);
   const semanaTalleres = useMemo(
@@ -283,21 +295,52 @@ export function PlanificacionSemanal({
     [talleres, validaciones, entregas, semanaActual]
   );
 
-  const moverASemanaActual = async (tallerId: string) => {
-    const nextTalleres = talleres.map((t) => (t.id === tallerId ? { ...t, semana: semanaActual } : t));
-    setTalleres(nextTalleres);
-    await dbSet('talleres', nextTalleres);
-    showToast('Taller movido a la semana actual');
+  const abrirMoverUno = (taller: Taller) => {
+    setDiaMasivoArrastre('');
+    setArrastreModal({ talleres: [taller], dias: { [taller.id]: taller.dia } });
   };
 
-  const moverTodosASemanaActual = async () => {
+  const abrirMoverTodos = () => {
     if (!atrasados.length) return;
-    if (!confirm(`¿Mover ${atrasados.length} taller(es) atrasado(s) a la semana del ${weekRangeLabel(semanaActual)}?`)) return;
-    const idsAtrasados = new Set(atrasados.map((t) => t.id));
-    const nextTalleres = talleres.map((t) => (idsAtrasados.has(t.id) ? { ...t, semana: semanaActual } : t));
+    setDiaMasivoArrastre('');
+    setArrastreModal({ talleres: atrasados, dias: Object.fromEntries(atrasados.map((t) => [t.id, t.dia])) });
+  };
+
+  const cambiarDiaArrastre = (tallerId: string, dia: DiaSemana) => {
+    setArrastreModal((prev) => (prev ? { ...prev, dias: { ...prev.dias, [tallerId]: dia } } : prev));
+  };
+
+  const aplicarDiaATodos = (dia: DiaSemana) => {
+    setDiaMasivoArrastre(dia);
+    setArrastreModal((prev) => (prev ? { ...prev, dias: Object.fromEntries(prev.talleres.map((t) => [t.id, dia])) } : prev));
+  };
+
+  /** Mueve los talleres seleccionados a la semana vigente, respetando el día elegido para cada uno
+   * (no asume que el nuevo día es el mismo que tenía antes). Además deja registro permanente de la
+   * semana y día ORIGINALES (la primera vez que se planificó, antes de cualquier arrastre) y de
+   * cuántas veces se ha arrastrado, para poder detectar talleres que se vienen postergando semana
+   * tras semana en vez de resolverse. */
+  const confirmarArrastre = async () => {
+    if (!arrastreModal) return;
+    const ahora = nowISODatetime();
+    const idsMovidos = new Set(arrastreModal.talleres.map((t) => t.id));
+    const nextTalleres = talleres.map((t) => {
+      if (!idsMovidos.has(t.id)) return t;
+      const diaElegido = arrastreModal.dias[t.id] || t.dia;
+      return {
+        ...t,
+        semanaOriginal: t.semanaOriginal || t.semana,
+        diaOriginal: t.diaOriginal || t.dia,
+        vecesArrastrado: (t.vecesArrastrado || 0) + 1,
+        ultimoArrastreEn: ahora,
+        semana: semanaActual,
+        dia: diaElegido,
+      };
+    });
     setTalleres(nextTalleres);
     await dbSet('talleres', nextTalleres);
-    showToast(`${atrasados.length} taller(es) movido(s) a la semana actual`);
+    showToast(`${arrastreModal.talleres.length} taller(es) movido(s) a la semana actual`);
+    setArrastreModal(null);
   };
 
   const sortByDiaPrioridad = (a: Taller, b: Taller) =>
@@ -305,7 +348,13 @@ export function PlanificacionSemanal({
 
   let globalFiltered = filtroSub === 'todos' ? semanaTalleres : semanaTalleres.filter((t) => t.subcontratistaId === filtroSub);
   if (filtroDia !== 'todos') globalFiltered = globalFiltered.filter((t) => t.dia === filtroDia);
+  if (filtroInspector !== 'todos') globalFiltered = globalFiltered.filter((t) => t.inspector === filtroInspector);
   if (buscadorUnidad.trim()) globalFiltered = globalFiltered.filter((t) => unidadMatchesSearch(t.edificio, t.esGeneral ? 'general' : t.unidad, buscadorUnidad));
+
+  const inspectoresDisponibles = useMemo(
+    () => [...new Set(talleres.map((t) => t.inspector).filter(Boolean))].sort(),
+    [talleres]
+  );
 
   const dimensionesDisponibles: Record<string, DimensionAgrupacion<Taller>> = {
     contratista: { key: 'contratista', label: 'Subcontratista', getValue: (t) => subName(t.subcontratistaId) },
@@ -313,12 +362,16 @@ export function PlanificacionSemanal({
     dia: { key: 'dia', label: 'Día', getValue: (t) => t.dia },
     prioridad: { key: 'prioridad', label: 'Prioridad', getValue: (t) => `Prioridad ${t.prioridad}` },
     estadoLiberacion: { key: 'estadoLiberacion', label: 'Estado de liberación', getValue: (t) => validacionDe(t.id)?.resultado || 'PENDIENTE' },
+    inspector: { key: 'inspector', label: 'Inspector de calidad', getValue: (t) => t.inspector || 'Sin asignar' },
   };
   const arbolPersonalizado = useMemo(() => {
     const dims = nivelesAgrupacion.map((k) => dimensionesDisponibles[k]).filter(Boolean);
     const ordenado = [...globalFiltered].sort(sortByDiaPrioridad);
     return construirArbolAgrupado(ordenado, dims);
   }, [globalFiltered, nivelesAgrupacion]);
+
+  const keysPorNivelPersonalizada = useMemo(() => keysPorNivel(arbolPersonalizado), [arbolPersonalizado]);
+  const nivelesConLabel = nivelesAgrupacion.map((k, i) => ({ label: dimensionesDisponibles[k]?.label || k, keys: keysPorNivelPersonalizada[i] || [] }));
 
   const contratistasConTalleres = useMemo(() => {
     const ids = [...new Set(globalFiltered.map((t) => t.subcontratistaId))];
@@ -329,6 +382,7 @@ export function PlanificacionSemanal({
   const vistaSemanalGrupos = useMemo(() => {
     let base = filtroSub === 'todos' ? semanaTalleres : semanaTalleres.filter((t) => t.subcontratistaId === filtroSub);
     base = filtroProyecto === 'todos' ? base : base.filter((t) => t.proyecto === filtroProyecto);
+    base = filtroInspector === 'todos' ? base : base.filter((t) => t.inspector === filtroInspector);
     const subIds = [...new Set(base.map((t) => t.subcontratistaId))];
     return subIds.map((subId) => {
       const itemsSub = base.filter((t) => t.subcontratistaId === subId);
@@ -345,7 +399,7 @@ export function PlanificacionSemanal({
         }),
       };
     });
-  }, [semanaTalleres, filtroSub, filtroProyecto, subs]);
+  }, [semanaTalleres, filtroSub, filtroProyecto, filtroInspector, subs]);
 
   const fechasAtrasadasRelevantes = useMemo(() => fechasPrometidasAtrasadas(fechas), [fechas]);
   const fechasProximasRelevantes = useMemo(() => fechasPrometidasProximas(fechas, 3), [fechas]);
@@ -377,6 +431,16 @@ export function PlanificacionSemanal({
         <TableCell title={t.creadoPor ? `Planificado por ${t.creadoPor}${t.creadoEn ? ` · ${fmtDateTime(t.creadoEn)}` : ''}` : ''}>{t.actividad}</TableCell>
         <TableCell><PrioridadBadge prioridad={t.prioridad} /></TableCell>
         <TableCell className="whitespace-nowrap">{diaLabel(t.semana, t.dia)}</TableCell>
+        <TableCell className="whitespace-nowrap">
+          {t.vecesArrastrado ? (
+            <Badge
+              variant="destructive"
+              title={`Planificado originalmente para ${t.diaOriginal || t.dia}, semana del ${weekRangeLabel(t.semanaOriginal || t.semana)}`}
+            >
+              <History size={11} className="mr-1" />{t.vecesArrastrado}x
+            </Badge>
+          ) : '—'}
+        </TableCell>
         <TableCell className="whitespace-nowrap">{t.esGeneral ? <span className="text-muted-foreground">No aplica</span> : (t.tecnico || <span className="text-muted-foreground">Sin asignar</span>)}</TableCell>
         <TableCell className="whitespace-nowrap">{t.inspector || <span className="text-muted-foreground">Sin asignar</span>}</TableCell>
         <TableCell className="whitespace-nowrap">{t.esGeneral ? <span className="text-muted-foreground">No aplica</span> : (t.fechaPromesa ? fmtDate(t.fechaPromesa) : '—')}</TableCell>
@@ -404,7 +468,7 @@ export function PlanificacionSemanal({
                 <AlertTriangle size={16} className="text-warning" />
                 {atrasados.length} taller(es) atrasado(s) de semanas anteriores
               </div>
-              <Button size="sm" variant="outline" onClick={moverTodosASemanaActual}>
+              <Button size="sm" variant="outline" onClick={abrirMoverTodos}>
                 <ArrowRightCircle size={13} />Mover todos a esta semana
               </Button>
             </div>
@@ -413,8 +477,9 @@ export function PlanificacionSemanal({
                 <div key={t.id} className="flex items-center justify-between rounded-md bg-white/60 px-3 py-1.5 text-[12.5px]">
                   <span>
                     <span className="font-medium">{subName(t.subcontratistaId)}</span> — {t.edificio} {t.unidad} ({t.actividad || 'sin actividad'}) · semana del {weekRangeLabel(t.semana)}
+                    {!!t.vecesArrastrado && <Badge variant="destructive" className="ml-1.5"><History size={10} className="mr-1" />{t.vecesArrastrado}x arrastrado</Badge>}
                   </span>
-                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => moverASemanaActual(t.id)}>
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => abrirMoverUno(t)}>
                     <ArrowRightCircle size={12} />Mover a esta semana
                   </Button>
                 </div>
@@ -482,11 +547,20 @@ export function PlanificacionSemanal({
           </div>
 
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2.5">
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               <Button size="sm" variant={vista === 'contratista' ? 'default' : 'outline'} onClick={() => setVista('contratista')}>Por contratista</Button>
               <Button size="sm" variant={vista === 'global' ? 'default' : 'outline'} onClick={() => setVista('global')}>Vista global de obra</Button>
               <Button size="sm" variant={vista === 'semanal' ? 'default' : 'outline'} onClick={() => setVista('semanal')}><CalendarDays size={13} />Vista semanal por días</Button>
               <Button size="sm" variant={vista === 'personalizada' ? 'default' : 'outline'} onClick={() => setVista('personalizada')}>Agrupación personalizada</Button>
+              {vista === 'contratista' && (
+                <ExpandCollapseAllButtons onExpandAll={colapsoContratista.expandAll} onCollapseAll={() => colapsoContratista.collapseAll(contratistasConTalleres.map((c) => c.id))} />
+              )}
+              {vista === 'semanal' && (
+                <ExpandCollapseAllButtons onExpandAll={colapsoSemanal.expandAll} onCollapseAll={() => colapsoSemanal.collapseAll(vistaSemanalGrupos.map((g) => g.subId))} />
+              )}
+              {vista === 'personalizada' && (
+                <ExpandCollapseAllButtons onExpandAll={colapsoPersonalizada.expandAll} onCollapseAll={() => colapsoPersonalizada.collapseAll(todasLasKeysAgrupables(arbolPersonalizado))} />
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               <UnidadSearchBox value={buscadorUnidad} onChange={setBuscadorUnidad} />
@@ -505,6 +579,7 @@ export function PlanificacionSemanal({
                   {subs.map((s) => <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <InspectorFilter value={filtroInspector} onChange={setFiltroInspector} opciones={inspectoresDisponibles} />
               {vista === 'personalizada' && (
                 <AgrupacionConfigButton opciones={OPCIONES_AGRUPACION_PLANIFICACION} seleccion={nivelesAgrupacion} onChange={setNivelesAgrupacion} />
               )}
@@ -547,10 +622,22 @@ export function PlanificacionSemanal({
             </div>
           </div>
 
+          {vista === 'personalizada' && nivelesConLabel.length > 0 && (
+            <div className="mb-3.5">
+              <NivelCollapseControls
+                niveles={nivelesConLabel}
+                onCollapseKeys={colapsoPersonalizada.collapseKeys}
+                onExpandKeys={colapsoPersonalizada.expandKeys}
+              />
+            </div>
+          )}
+
           {vista === 'contratista' && (
             contratistasConTalleres.length ? contratistasConTalleres.map((c) => (
               <CollapsibleGroup
                 key={c.id}
+                open={!colapsoContratista.isCollapsed(c.id)}
+                onToggle={() => colapsoContratista.toggle(c.id)}
                 header={
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <SubAvatar name={c.nombre} id={c.id} />{c.nombre}
@@ -571,6 +658,8 @@ export function PlanificacionSemanal({
             vistaSemanalGrupos.length ? vistaSemanalGrupos.map((g) => (
               <CollapsibleGroup
                 key={g.subId}
+                open={!colapsoSemanal.isCollapsed(g.subId)}
+                onToggle={() => colapsoSemanal.toggle(g.subId)}
                 header={
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <SubAvatar name={g.nombre} id={g.subId} />{g.nombre}
@@ -604,7 +693,7 @@ export function PlanificacionSemanal({
                                         onClick={() => goToTaller(t.id)}
                                         className="block w-full rounded-md border border-border/70 bg-card px-2 py-1.5 text-left hover:border-primary hover:bg-muted/40"
                                       >
-                                        <div className="font-medium">{t.esGeneral ? <Badge variant="secondary" className="mr-1">General</Badge> : `${t.edificio} ${t.unidad}`}</div>
+                                        <div className="font-medium">{t.esGeneral ? <Badge variant="secondary" className="mr-1">General</Badge> : `${t.edificio} ${t.unidad}`}{!!t.vecesArrastrado && <Badge variant="destructive" className="ml-1">{t.vecesArrastrado}x</Badge>}</div>
                                         <div className="truncate text-[10.5px] text-muted-foreground">{t.actividad || 'Sin actividad'}</div>
                                         <div className="mt-0.5"><EstadoLiberacionBadge estado={estado} /></div>
                                       </button>
@@ -626,6 +715,8 @@ export function PlanificacionSemanal({
           {vista === 'personalizada' && (
             <ArbolAgrupado
               nodos={arbolPersonalizado}
+              isCollapsed={colapsoPersonalizada.isCollapsed}
+              onToggle={colapsoPersonalizada.toggle}
               renderHoja={(items) => <TallaresTabla items={items} showSub subName={subName} validacionDe={validacionDe} renderCells={renderCells} />}
             />
           )}
@@ -636,6 +727,54 @@ export function PlanificacionSemanal({
         <DialogContent className="max-h-[90vh] max-w-[95vw] overflow-y-auto sm:max-w-4xl">
           <DialogHeader><DialogTitle>Agregar talleres a la planificación</DialogTitle></DialogHeader>
           <MultiTallerForm subs={subs} catalogo={catalogo} unidadesProyecto={unidadesProyecto} talleresExistentes={talleres} onSaveMany={saveMany} onCancel={() => setShowMulti(false)} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!arrastreModal} onOpenChange={(o) => !o && setArrastreModal(null)}>
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>¿Para qué día de la semana del {weekRangeLabel(semanaActual)} se mueve{arrastreModal && arrastreModal.talleres.length > 1 ? 'n' : ''}?</DialogTitle>
+          </DialogHeader>
+          {arrastreModal && (
+            <div className="space-y-3">
+              <div className="rounded-md bg-muted/40 p-3 text-[12.5px] text-muted-foreground">
+                Por defecto se sugiere el mismo día que tenían, pero puedes elegir otro. Esto queda registrado: si un taller ya se había arrastrado antes, el contador de arrastres sube y se conserva la semana y el día en que se planificó originalmente.
+              </div>
+              {arrastreModal.talleres.length > 1 && (
+                <div className="flex items-center gap-2 rounded-md border border-border bg-muted/20 px-3 py-2">
+                  <span className="text-[12px] font-medium">Aplicar el mismo día a todos:</span>
+                  <Select value={diaMasivoArrastre} onValueChange={(v) => aplicarDiaATodos(v as DiaSemana)}>
+                    <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="Elegir día..." /></SelectTrigger>
+                    <SelectContent>
+                      {DIAS_ORDER.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="max-h-[320px] space-y-1.5 overflow-y-auto">
+                {arrastreModal.talleres.map((t) => (
+                  <div key={t.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-[12.5px]">
+                    <span>
+                      <span className="font-medium">{subName(t.subcontratistaId)}</span> — {t.esGeneral ? 'General' : `${t.edificio} ${t.unidad}`}
+                      <span className="ml-1.5 text-muted-foreground">
+                        (semana original: {weekRangeLabel(t.semanaOriginal || t.semana)}, {t.diaOriginal || t.dia}{!!t.vecesArrastrado && ` · arrastrado ${t.vecesArrastrado}x`})
+                      </span>
+                    </span>
+                    <Select value={arrastreModal.dias[t.id] || t.dia} onValueChange={(v) => cambiarDiaArrastre(t.id, v as DiaSemana)}>
+                      <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {DIAS_ORDER.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setArrastreModal(null)}>Cancelar</Button>
+            <Button onClick={confirmarArrastre}>Confirmar y mover</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
