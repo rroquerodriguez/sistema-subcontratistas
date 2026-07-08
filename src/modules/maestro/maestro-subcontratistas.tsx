@@ -8,12 +8,13 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { SubAvatar } from '@/components/shared/sub-avatar';
 import { SubcontratistaForm } from './subcontratista-form';
-import { dbSet } from '@/lib/storage';
+
 import { uid } from '@/lib/utils-app';
 import { descargarPlantillaMaestro, parsePlantillaMaestro, exportMaestroExcel, type FilaMaestroResultado } from '@/lib/import-maestro';
 import { useUsuarioActual } from '@/lib/usuario-actual-context';
 import { puedeEditar } from '@/lib/auth';
 import type { Subcontratista, Taller, Queja } from '@/types';
+import { persistir } from '@/lib/persistir';
 
 interface MaestroSubcontratistasProps {
   subs: Subcontratista[];
@@ -38,7 +39,7 @@ export function MaestroSubcontratistas({ subs, setSubs, talleres, quejas, showTo
     const exists = subs.find((s) => s.id === sub.id);
     const next = exists ? subs.map((s) => (s.id === sub.id ? sub : s)) : [...subs, sub];
     setSubs(next);
-    await dbSet('subcontratistas', next);
+    if (!(await persistir('subcontratistas', next))) return;
     setEditing(null);
     setShowNew(false);
     showToast(exists ? 'Subcontratista actualizado' : 'Subcontratista agregado');
@@ -47,7 +48,7 @@ export function MaestroSubcontratistas({ subs, setSubs, talleres, quejas, showTo
   const doDelete = async (id: string) => {
     const next = subs.filter((s) => s.id !== id);
     setSubs(next);
-    await dbSet('subcontratistas', next);
+    if (!(await persistir('subcontratistas', next))) return;
     setConfirmDelete(null);
     showToast('Subcontratista eliminado');
   };
@@ -73,7 +74,7 @@ export function MaestroSubcontratistas({ subs, setSubs, talleres, quejas, showTo
     const nuevos: Subcontratista[] = previewPlantilla.subcontratistas.map((s) => ({ ...s, id: uid('sub') }));
     const next = [...subs, ...nuevos];
     setSubs(next);
-    await dbSet('subcontratistas', next);
+    if (!(await persistir('subcontratistas', next))) return;
     showToast(`${nuevos.length} subcontratista(s) importado(s)`);
     setPreviewPlantilla(null);
   };
@@ -165,14 +166,14 @@ export function MaestroSubcontratistas({ subs, setSubs, talleres, quejas, showTo
       </Card>
 
       <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Agregar subcontratista</DialogTitle></DialogHeader>
           <SubcontratistaForm onSave={save} onCancel={() => setShowNew(false)} />
         </DialogContent>
       </Dialog>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Editar subcontratista</DialogTitle></DialogHeader>
           {editing && <SubcontratistaForm initial={editing} onSave={save} onCancel={() => setEditing(null)} />}
         </DialogContent>
