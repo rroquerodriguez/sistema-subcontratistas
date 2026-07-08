@@ -1,4 +1,4 @@
-import { dbGet, dbSet } from './storage';
+import { dbGet, dbSet, clavesNoConfiables } from './storage';
 import { todayISO } from './utils-app';
 
 /** Todas las claves de almacenamiento que usa la app. Si se agrega una nueva en el futuro, debe añadirse aquí también. */
@@ -116,6 +116,34 @@ export async function descargarRespaldo() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/** Respaldo de seguridad AUTOMÁTICO que se descarga justo antes de una operación destructiva
+ * (restaurar respaldo, borrar datos). Devuelve true si el respaldo se generó y descargó completo.
+ *
+ * Detalle importante: si alguna clave no se pudo LEER al generar el respaldo, el archivo contendría
+ * listas vacías donde en realidad hay datos — un respaldo así es una trampa (restaurarlo después
+ * borraría esos datos). Por eso, si alguna lectura falló, esta función devuelve false y la operación
+ * destructiva que la llamó debe ABORTAR. */
+export async function respaldoDeSeguridad(motivo: string): Promise<boolean> {
+  const respaldo = await generarRespaldo();
+  const fallidas = clavesNoConfiables().filter((k) => (STORAGE_KEYS as readonly string[]).includes(k));
+  if (fallidas.length > 0) {
+    console.error('Respaldo de seguridad incompleto, claves ilegibles:', fallidas);
+    return false;
+  }
+  const blob = new Blob([JSON.stringify(respaldo, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const ahora = new Date();
+  const marca = `${todayISO()}_${String(ahora.getHours()).padStart(2, '0')}-${String(ahora.getMinutes()).padStart(2, '0')}-${String(ahora.getSeconds()).padStart(2, '0')}`;
+  a.href = url;
+  a.download = `respaldo_seguridad_${motivo}_${marca}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  return true;
 }
 
 export interface ResultadoRestauracion {
