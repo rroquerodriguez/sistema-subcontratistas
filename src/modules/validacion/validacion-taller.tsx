@@ -23,11 +23,12 @@ import { useUsuarioActual } from '@/lib/usuario-actual-context';
 import { puedeEditar } from '@/lib/auth';
 import { EstadoLiberacionBadge, EntregaBadge, DiasPill } from '@/components/shared/status-badges';
 import { GestionTallerModal } from './gestion-taller-modal';
-import { dbSet } from '@/lib/storage';
+
 import { weekRangeLabel, todayISO, diffDays } from '@/lib/utils-app';
 import { exportLiberacionExcel, COLUMNAS_LIBERACION_DEFAULT, COLUMNAS_LIBERACION } from '@/lib/export-liberacion-excel';
 import { exportLiberacionPDF } from '@/lib/export-liberacion-pdf';
 import type { Subcontratista, Taller, Validacion, Entrega, ResultadoValidacion, UnidadProyecto } from '@/types';
+import { persistir } from '@/lib/persistir';
 
 interface ValidacionTallerProps {
   subs: Subcontratista[];
@@ -161,7 +162,7 @@ export function ValidacionTaller({
     const registro = { ...v, registradoPorId: usuario.id, registradoEn: new Date().toISOString() };
     const next = validaciones.map((x) => (x.id === v.id ? registro : x));
     setValidaciones(next);
-    await dbSet('validaciones', next);
+    if (!(await persistir('validaciones', next))) return;
     showToast('Liberación guardada');
     setGestionando(null);
   };
@@ -171,7 +172,7 @@ export function ValidacionTaller({
     const registro = { ...e, registradoPorId: usuario.id, registradoEn: new Date().toISOString() };
     const next = exists ? entregas.map((x) => (x.id === e.id ? registro : x)) : [...entregas, registro];
     setEntregas(next);
-    await dbSet('entregas', next);
+    if (!(await persistir('entregas', next))) return;
     showToast('Entrega registrada');
     setGestionando(null);
   };
