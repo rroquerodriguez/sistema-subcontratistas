@@ -23,12 +23,13 @@ import { ExportarButton } from '@/components/shared/exportar-button';
 import { useUsuarioActual } from '@/lib/usuario-actual-context';
 import { puedeEditar } from '@/lib/auth';
 import { QuejaForm } from './queja-form';
-import { dbSet } from '@/lib/storage';
+
 import { fmtDate, fmtDateTime } from '@/lib/utils-app';
 import { exportQuejasExcel, COLUMNAS_QUEJA, COLUMNAS_QUEJA_DEFAULT } from '@/lib/export-quejas-excel';
 import { exportQuejasPDF } from '@/lib/export-quejas-pdf';
 import { ColumnSelector } from '@/components/shared/column-selector';
 import type { Subcontratista, Queja, Taller, Validacion, Entrega } from '@/types';
+import { persistir } from '@/lib/persistir';
 
 interface QuejasIncidenciasProps {
   subs: Subcontratista[];
@@ -112,7 +113,7 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
     const registro = existing ? q : { ...q, registradoPor: usuario.nombre, registradoPorId: usuario.id, registradoEn: new Date().toISOString() };
     const next = existing ? quejas.map((x) => (x.id === q.id ? registro : x)) : [...quejas, registro];
     setQuejas(next);
-    await dbSet('quejas', next);
+    if (!(await persistir('quejas', next))) return;
     setShowNew(false);
     setEditing(null);
     showToast('Incidencia guardada');
@@ -122,7 +123,7 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
     if (!confirm('¿Eliminar esta incidencia?')) return;
     const next = quejas.filter((x) => x.id !== id);
     setQuejas(next);
-    await dbSet('quejas', next);
+    if (!(await persistir('quejas', next))) return;
     showToast('Incidencia eliminada');
   };
 
