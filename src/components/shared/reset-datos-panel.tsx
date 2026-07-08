@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { MODULOS_BORRABLES, resetearModulos } from '@/lib/backup';
+import { MODULOS_BORRABLES, resetearModulos, respaldoDeSeguridad } from '@/lib/backup';
 
 interface ResetDatosPanelProps {
   onReset: () => void; // recargar datos en memoria tras borrar
@@ -46,9 +46,18 @@ export function ResetDatosPanel({ onReset, showToast }: ResetDatosPanelProps) {
     if (textoConfirmacion.trim().toUpperCase() !== 'BORRAR') return;
     setBorrando(true);
     try {
+      // Respaldo de seguridad automático ANTES de borrar: se descarga a la computadora del usuario.
+      // Si no se puede generar completo (alguna clave ilegible), se aborta el borrado — sin red de
+      // seguridad no se destruye nada.
+      const seguro = await respaldoDeSeguridad('antes_de_borrar');
+      if (!seguro) {
+        showToast('Borrado cancelado: no se pudo generar el respaldo de seguridad previo. Verifica tu conexión e intenta de nuevo.');
+        setConfirmando(false);
+        return;
+      }
       await resetearModulos([...seleccion]);
       const nombres = MODULOS_BORRABLES.filter((m) => seleccion.has(m.key)).map((m) => m.label);
-      showToast(`Datos borrados: ${nombres.length} módulo(s)`);
+      showToast(`Datos borrados: ${nombres.length} módulo(s). Se descargó un respaldo de seguridad del estado anterior.`);
       setSeleccion(new Set());
       setConfirmando(false);
       onReset();
@@ -69,9 +78,9 @@ export function ResetDatosPanel({ onReset, showToast }: ResetDatosPanelProps) {
         <div className="mb-3.5 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-[12.5px]">
           <AlertTriangle size={15} className="mt-0.5 flex-shrink-0 text-destructive" />
           <div>
-            Esta sección borra información de forma <strong>permanente e irreversible</strong>. Úsala para limpiar datos de prueba
-            antes de empezar en real, o para vaciar un módulo puntual. <strong>Antes de borrar, descarga un respaldo completo</strong> desde
-            la pestaña de Respaldo — si borras algo por error, esa es la única forma de recuperarlo.
+            Esta sección borra información de forma <strong>permanente</strong>. Úsala para limpiar datos de prueba
+            antes de empezar en real, o para vaciar un módulo puntual. Como red de seguridad, <strong>antes de borrar se descargará
+            automáticamente un respaldo completo</strong> a tu computadora — guárdalo: es la única forma de recuperar los datos si borras algo por error.
           </div>
         </div>
 
