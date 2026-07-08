@@ -11,7 +11,7 @@ import { PhotoViewer } from '@/components/shared/photo-viewer';
 import { SortableTableHead } from '@/components/shared/sortable-table-head';
 import { useSortableFilterableTable, type ColumnConfig } from '@/lib/use-sortable-table';
 import { FechaPrometidaForm } from './fecha-prometida-form';
-import { dbSet } from '@/lib/storage';
+
 import { fmtDate, todayISO } from '@/lib/utils-app';
 import { diasAtrasoFechaPrometida, diasAtrasoOriginal, vecesReprogramada, estaAtrasada, estaCumplida } from '@/lib/stats-engine';
 import { exportFechasExcel, COLUMNAS_FECHA, COLUMNAS_FECHA_DEFAULT } from '@/lib/export-fechas-excel';
@@ -20,6 +20,7 @@ import { ColumnSelector } from '@/components/shared/column-selector';
 import { useUsuarioActual } from '@/lib/usuario-actual-context';
 import { puedeEditar } from '@/lib/auth';
 import type { Subcontratista, FechaPrometida, Taller, UnidadProyecto } from '@/types';
+import { persistir } from '@/lib/persistir';
 
 interface FechasPrometidasProps {
   subs: Subcontratista[];
@@ -47,7 +48,7 @@ export function FechasPrometidas({ subs, talleres, fechas, setFechas, showToast,
     const exists = fechas.find((x) => x.id === fp.id);
     const next = exists ? fechas.map((x) => (x.id === fp.id ? fp : x)) : [...fechas, fp];
     setFechas(next);
-    await dbSet('fechas_prometidas', next);
+    if (!(await persistir('fechas_prometidas', next))) return;
     setShowNew(false);
     setEditing(null);
     showToast('Fecha prometida guardada');
@@ -57,7 +58,7 @@ export function FechasPrometidas({ subs, talleres, fechas, setFechas, showToast,
     if (!confirm('¿Eliminar este registro?')) return;
     const next = fechas.filter((x) => x.id !== id);
     setFechas(next);
-    await dbSet('fechas_prometidas', next);
+    if (!(await persistir('fechas_prometidas', next))) return;
     showToast('Registro eliminado');
   };
 
