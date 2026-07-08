@@ -16,6 +16,78 @@ export const STORAGE_KEYS = [
   'unidades_proyecto_meta',
 ] as const;
 
+/** Grupos de datos que el usuario puede borrar selectivamente desde Configuración. Cada módulo
+ * agrupa una o varias claves de storage relacionadas. Se define aparte de STORAGE_KEYS porque un
+ * "módulo" desde el punto de vista del usuario (ej: "Planificación") puede involucrar varias claves
+ * técnicas (talleres + validaciones + entregas), y algunas claves (como los subcontratistas o el
+ * catálogo) son datos maestros que conviene poder conservar aunque se borre el resto. */
+export interface ModuloBorrable {
+  key: string;
+  label: string;
+  descripcion: string;
+  storageKeys: string[];
+}
+
+export const MODULOS_BORRABLES: ModuloBorrable[] = [
+  {
+    key: 'planificacion',
+    label: 'Planificación (talleres, liberaciones y entregas)',
+    descripcion: 'Todos los talleres planificados junto con sus validaciones de liberación y registros de entrega.',
+    storageKeys: ['talleres', 'validaciones', 'entregas'],
+  },
+  {
+    key: 'bitacora',
+    label: 'Bitácora diaria',
+    descripcion: 'Todos los registros de avance diario de obra.',
+    storageKeys: ['bitacora'],
+  },
+  {
+    key: 'quejas',
+    label: 'Quejas e incidencias',
+    descripcion: 'Todas las incidencias y quejas registradas, junto con su seguimiento por ciclos.',
+    storageKeys: ['quejas', 'ciclos_taller'],
+  },
+  {
+    key: 'fechas',
+    label: 'Fechas prometidas',
+    descripcion: 'Todas las fechas prometidas por los subcontratistas y su historial de cambios.',
+    storageKeys: ['fechas_prometidas'],
+  },
+  {
+    key: 'catalogo',
+    label: 'Catálogo de talleres',
+    descripcion: 'El catálogo de actividades por subcontratista (datos maestros).',
+    storageKeys: ['catalogo_talleres'],
+  },
+  {
+    key: 'subcontratistas',
+    label: 'Subcontratistas',
+    descripcion: 'La lista maestra de subcontratistas. Ojo: borrarla deja sin nombre a los talleres que dependan de ella.',
+    storageKeys: ['subcontratistas'],
+  },
+  {
+    key: 'unidades',
+    label: 'Unidades del proyecto (Excel importado)',
+    descripcion: 'Las unidades importadas del Excel de reporte y la información del último archivo cargado.',
+    storageKeys: ['unidades_proyecto', 'unidades_proyecto_meta'],
+  },
+];
+
+/** Borra por completo las claves de storage de los módulos indicados (deja cada clase de dato como
+ * lista vacía). Devuelve las claves efectivamente vaciadas. No pide confirmación — eso lo maneja la UI. */
+export async function resetearModulos(keysModulos: string[]): Promise<string[]> {
+  const modulos = MODULOS_BORRABLES.filter((m) => keysModulos.includes(m.key));
+  const vaciadas: string[] = [];
+  for (const modulo of modulos) {
+    for (const sk of modulo.storageKeys) {
+      // La metadata del archivo es un objeto único, no una lista: se deja en null
+      await dbSet(sk, sk === 'unidades_proyecto_meta' ? null : []);
+      vaciadas.push(sk);
+    }
+  }
+  return vaciadas;
+}
+
 export interface RespaldoCompleto {
   version: 1;
   generadoEn: string;
