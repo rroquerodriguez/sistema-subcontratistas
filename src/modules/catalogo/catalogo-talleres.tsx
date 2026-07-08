@@ -16,12 +16,13 @@ import { useCollapseState } from '@/lib/use-collapse-state';
 import { SortableTableHead } from '@/components/shared/sortable-table-head';
 import { useSortableFilterableTable, type ColumnConfig } from '@/lib/use-sortable-table';
 import { MultiActividadForm, type MultiActividadRow } from './multi-actividad-form';
-import { dbSet } from '@/lib/storage';
+
 import { uid } from '@/lib/utils-app';
 import { descargarPlantillaCatalogo, parsePlantillaCatalogo, exportCatalogoExcel, type FilaCatalogoResultado } from '@/lib/import-catalogo';
 import { useUsuarioActual } from '@/lib/usuario-actual-context';
 import { puedeEditar } from '@/lib/auth';
 import type { Subcontratista, TallerCatalogo } from '@/types';
+import { persistir } from '@/lib/persistir';
 
 interface CatalogoTalleresProps {
   subs: Subcontratista[];
@@ -87,7 +88,7 @@ export function CatalogoTalleres({ subs, catalogo, setCatalogo, showToast }: Cat
     const nuevas: TallerCatalogo[] = rows.map((r) => ({ id: uid('cat'), subcontratistaId: r.subcontratistaId, actividad: r.actividad.trim(), notas: r.notas }));
     const next = [...catalogo, ...nuevas];
     setCatalogo(next);
-    await dbSet('catalogo_talleres', next);
+    if (!(await persistir('catalogo_talleres', next))) return;
     setShowMulti(false);
     showToast(`${nuevas.length} actividad(es) agregada(s) al catálogo`);
   };
@@ -113,7 +114,7 @@ export function CatalogoTalleres({ subs, catalogo, setCatalogo, showToast }: Cat
     const nuevas: TallerCatalogo[] = previewPlantilla.actividades.map((a) => ({ ...a, id: uid('cat') }));
     const next = [...catalogo, ...nuevas];
     setCatalogo(next);
-    await dbSet('catalogo_talleres', next);
+    if (!(await persistir('catalogo_talleres', next))) return;
     showToast(`${nuevas.length} actividad(es) importada(s) al catálogo`);
     setPreviewPlantilla(null);
   };
@@ -125,7 +126,7 @@ export function CatalogoTalleres({ subs, catalogo, setCatalogo, showToast }: Cat
     const item: TallerCatalogo = { ...editing, subcontratistaId: subSel, actividad: actividad.trim(), notas };
     const next = catalogo.map((x) => (x.id === item.id ? item : x));
     setCatalogo(next);
-    await dbSet('catalogo_talleres', next);
+    if (!(await persistir('catalogo_talleres', next))) return;
     setEditing(null);
     showToast('Actividad actualizada');
   };
@@ -134,7 +135,7 @@ export function CatalogoTalleres({ subs, catalogo, setCatalogo, showToast }: Cat
     if (!confirm('¿Eliminar esta actividad del catálogo? No afecta talleres ya planificados.')) return;
     const next = catalogo.filter((x) => x.id !== id);
     setCatalogo(next);
-    await dbSet('catalogo_talleres', next);
+    if (!(await persistir('catalogo_talleres', next))) return;
     showToast('Actividad eliminada del catálogo');
   };
 
@@ -215,7 +216,7 @@ export function CatalogoTalleres({ subs, catalogo, setCatalogo, showToast }: Cat
       </Dialog>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Editar actividad</DialogTitle></DialogHeader>
           <div className="space-y-3.5">
             <div className="space-y-1.5">
