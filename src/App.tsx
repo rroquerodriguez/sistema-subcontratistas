@@ -14,6 +14,7 @@ import { FechasPrometidas } from '@/modules/fechas/fechas-prometidas';
 import { CatalogoTalleres } from '@/modules/catalogo/catalogo-talleres';
 import { SettingsPage } from '@/modules/settings/settings-page';
 import { dbGet, dbSet, supabase, clavesNoConfiables, onEscrituraBloqueada } from '@/lib/storage';
+import { onFalloGuardado } from '@/lib/persistir';
 import { cargarSesionActual, modulosVisibles, listarPerfiles, type SesionUsuario } from '@/lib/auth';
 import { UsuarioActualContext } from '@/lib/usuario-actual-context';
 import { SEED_SUBCONTRATISTAS } from '@/lib/seed-data';
@@ -125,6 +126,17 @@ function App() {
       toast.error(`No se guardó: los datos de "${nombreClave(key)}" no cargaron bien al abrir la app. Usa "Reintentar carga" en el aviso superior antes de guardar.`, { duration: 8000 });
     });
   }, []);
+
+  // Aviso cuando un guardado falla por red/servidor: la pantalla puede estar mostrando un cambio
+  // que NO llegó a la base. "Recargar datos" resincroniza la pantalla con lo que realmente hay guardado.
+  useEffect(() => {
+    return onFalloGuardado((key) => {
+      toast.error(`No se pudo guardar en "${nombreClave(key)}". Revisa tu conexión e intenta de nuevo. Si la pantalla muestra el cambio, aún NO está guardado.`, {
+        duration: 10000,
+        action: { label: 'Recargar datos', onClick: () => cargarTodo() },
+      });
+    });
+  }, [cargarTodo]);
 
   useEffect(() => {
     let activo = true;
