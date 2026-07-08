@@ -27,7 +27,7 @@ import { ArbolAgrupado } from '@/components/shared/arbol-agrupado';
 import { construirArbolAgrupado, todasLasKeysAgrupables, keysPorNivel, type DimensionAgrupacion } from '@/lib/agrupacion-multinivel';
 import { ExportarButton } from '@/components/shared/exportar-button';
 import { BitacoraForm } from './bitacora-form';
-import { dbSet } from '@/lib/storage';
+
 import { fmtDate, fmtDateTime, uid, todayISO, mesKeyActual, mesLabel, semanasDelMes, weekRangeLabel, mondayOf } from '@/lib/utils-app';
 import { DIAS_SEMANA } from '@/lib/seed-data';
 import { buildParrafoAnalisisBitacora, quejasDelTaller } from '@/lib/stats-engine';
@@ -37,6 +37,7 @@ import { ColumnSelector } from '@/components/shared/column-selector';
 import { useUsuarioActual } from '@/lib/usuario-actual-context';
 import { puedeEditar } from '@/lib/auth';
 import type { Subcontratista, Taller, RegistroBitacora, CicloTaller, Queja } from '@/types';
+import { persistir } from '@/lib/persistir';
 
 type PeriodoBitacora = 'dia' | 'semana' | 'mes';
 
@@ -158,7 +159,7 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
     const exists = ciclos.find((x) => x.id === c.id);
     const next = exists ? ciclos.map((x) => (x.id === c.id ? c : x)) : [...ciclos, c];
     setCiclos(next);
-    await dbSet('ciclos_taller', next);
+    if (!(await persistir('ciclos_taller', next))) return;
   };
 
   /** Crea o actualiza el registro diario de hoy para un taller, desde el panel de ciclo */
@@ -181,7 +182,7 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
       next = [...bitacora, nuevo];
     }
     setBitacora(next);
-    await dbSet('bitacora', next);
+    if (!(await persistir('bitacora', next))) return;
   };
 
   const save = async (b: RegistroBitacora) => {
@@ -189,7 +190,7 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
     const registro = exists ? b : { ...b, registradoPor: usuario.nombre, registradoPorId: usuario.id, registradoEn: new Date().toISOString() };
     const next = exists ? bitacora.map((x) => (x.id === b.id ? registro : x)) : [...bitacora, registro];
     setBitacora(next);
-    await dbSet('bitacora', next);
+    if (!(await persistir('bitacora', next))) return;
     setShowNew(false);
     setEditing(null);
     showToast('Registro de bitácora guardado');
@@ -199,7 +200,7 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
     if (!confirm('¿Eliminar este registro?')) return;
     const next = bitacora.filter((x) => x.id !== id);
     setBitacora(next);
-    await dbSet('bitacora', next);
+    if (!(await persistir('bitacora', next))) return;
     showToast('Registro eliminado');
   };
 
@@ -444,14 +445,14 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
       </Card>
 
       <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader><DialogTitle>Nuevo registro de bitácora</DialogTitle></DialogHeader>
           <BitacoraForm subs={subs} talleres={talleres} onSave={save} onCancel={() => setShowNew(false)} />
         </DialogContent>
       </Dialog>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader><DialogTitle>Editar registro</DialogTitle></DialogHeader>
           {editing && <BitacoraForm subs={subs} talleres={talleres} initial={editing} onSave={save} onCancel={() => setEditing(null)} />}
         </DialogContent>
