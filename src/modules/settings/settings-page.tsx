@@ -4,8 +4,9 @@ import { ImportUnidadesPanel } from '@/components/shared/import-unidades-panel';
 import { BackupPanel } from '@/components/shared/backup-panel';
 import { ResetDatosPanel } from '@/components/shared/reset-datos-panel';
 import { UsuariosPanel } from './usuarios-panel';
-import { dbSet } from '@/lib/storage';
+
 import type { UnidadProyecto, ArchivoImportadoMeta, Perfil } from '@/types';
+import { persistir } from '@/lib/persistir';
 
 interface SettingsPageProps {
   unidadesProyecto: UnidadProyecto[];
@@ -19,7 +20,7 @@ interface SettingsPageProps {
 
 export function SettingsPage({ unidadesProyecto, setUnidadesProyecto, archivoMeta, setArchivoMeta, onRestored, showToast, miPerfil }: SettingsPageProps) {
   const guardarUnidades = async (u: UnidadProyecto[]) => {
-    await dbSet('unidades_proyecto', u);
+    if (!(await persistir('unidades_proyecto', u))) return;
   };
 
   return (
