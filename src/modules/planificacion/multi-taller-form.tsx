@@ -51,6 +51,19 @@ export function MultiTallerForm({ subs, catalogo, unidadesProyecto, talleresExis
 
   const actividadesDe = (subId: string) => catalogo.filter((c) => c.subcontratistaId === subId).map((c) => c.actividad);
 
+  /** El proyecto en el Excel puede venir con variaciones de mayúsculas/acentos (ej: "Panorama Park",
+   * "PANORAMA GARDEN "). Esto lo mapea al valor exacto que espera el selector; si no reconoce el texto,
+   * devuelve null para no pisar lo que el usuario ya tenga elegido en esa fila. */
+  const normalizarProyecto = (valor: string): Proyecto | null => {
+    const v = valor.trim().toUpperCase();
+    if (!v) return null;
+    const match = PROYECTOS.find((p) => p.toUpperCase() === v);
+    if (match) return match as Proyecto;
+    if (v.includes('PARK')) return 'PANORAMA PARK';
+    if (v.includes('GARDEN')) return 'PANORAMA GARDEN';
+    return null;
+  };
+
   const viviendasUnicas = [...new Set(unidadesProyecto.map((u) => u.edificio).filter(Boolean))];
   const inspectoresUnicos = [...new Set(unidadesProyecto.map((u) => u.inspector).filter(Boolean))];
 
@@ -62,8 +75,10 @@ export function MultiTallerForm({ subs, catalogo, unidadesProyecto, talleresExis
       (u) => u.edificio.toLowerCase() === vivienda.trim().toLowerCase() && u.unidad.toLowerCase() === unidad.trim().toLowerCase()
     );
     if (!match) return;
+    const proyectoNormalizado = normalizarProyecto(match.proyecto || '');
     setRows((prev) => prev.map((r) => (r.rowId === rowId ? {
       ...r,
+      proyecto: proyectoNormalizado || r.proyecto,
       tecnico: match.tecnico || r.tecnico,
       inspector: match.inspector || r.inspector,
       fechaPromesa: match.fechaPromesa || r.fechaPromesa,
@@ -118,7 +133,7 @@ export function MultiTallerForm({ subs, catalogo, unidadesProyecto, talleresExis
     <div>
       <div className="mb-3 text-[12.5px] text-muted-foreground">
         Completa las filas que necesites. Cada fila con subcontratista y unidad se guardará como un taller independiente, con su validación de liberación pendiente.
-        {unidadesProyecto.length > 0 && ' La Vivienda y la Unidad vienen del reporte de unidades importado en el Dashboard; al elegir ambas se autocompleta técnico, inspector de calidad, fecha promesa y prioridad sugerida (todo editable).'}
+        {unidadesProyecto.length > 0 && ' La Vivienda y la Unidad vienen del reporte de unidades importado en el Dashboard; al elegir ambas se autocompleta proyecto, técnico, inspector de calidad, fecha promesa y prioridad sugerida (todo editable).'}
         {' Marca "General" cuando la actividad aplique a todo el edificio y no a una unidad específica (ej: pintura de fachada exterior).'}
       </div>
       <div className="space-y-2.5">

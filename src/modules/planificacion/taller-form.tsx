@@ -40,8 +40,13 @@ export function TallerForm({ initial, subs, catalogo, unidadesProyecto, onSave, 
       (u) => u.edificio.toLowerCase() === vivienda.trim().toLowerCase() && u.unidad.toLowerCase() === unidad.trim().toLowerCase()
     );
     if (!match) return;
+    const v = (match.proyecto || '').trim().toUpperCase();
+    const proyectoNormalizado: Proyecto | null = !v ? null
+      : (PROYECTOS.find((p) => p.toUpperCase() === v) as Proyecto | undefined)
+      || (v.includes('PARK') ? 'PANORAMA PARK' : v.includes('GARDEN') ? 'PANORAMA GARDEN' : null);
     setF((prev) => ({
       ...prev,
+      proyecto: proyectoNormalizado || prev.proyecto,
       tecnico: match.tecnico || prev.tecnico,
       inspector: match.inspector || prev.inspector,
       fechaPromesa: match.fechaPromesa || prev.fechaPromesa,
