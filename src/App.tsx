@@ -13,7 +13,7 @@ import { EvaluacionSemanal } from '@/modules/evaluacion/evaluacion-semanal';
 import { FechasPrometidas } from '@/modules/fechas/fechas-prometidas';
 import { CatalogoTalleres } from '@/modules/catalogo/catalogo-talleres';
 import { SettingsPage } from '@/modules/settings/settings-page';
-import { dbGet, dbSet, supabase } from '@/lib/storage';
+import { dbGet, dbSet, supabase, clavesNoConfiables, onEscrituraBloqueada } from '@/lib/storage';
 import { cargarSesionActual, modulosVisibles, listarPerfiles, type SesionUsuario } from '@/lib/auth';
 import { UsuarioActualContext } from '@/lib/usuario-actual-context';
 import { SEED_SUBCONTRATISTAS } from '@/lib/seed-data';
@@ -21,6 +21,22 @@ import { mondayOf, todayISO } from '@/lib/utils-app';
 import type { Subcontratista, Taller, Validacion, Entrega, RegistroBitacora, Queja, CicloTaller, FechaPrometida, TallerCatalogo, UnidadProyecto, ArchivoImportadoMeta, Perfil, TabId } from '@/types';
 
 const ORDEN_MODULOS: TabId[] = ['dashboard', 'maestro', 'catalogo', 'planificacion', 'validacion', 'bitacora', 'quejas', 'fechas', 'evaluacion', 'settings'];
+
+/** Nombres amigables de cada clave de datos, para los avisos de protección anti-borrado */
+const NOMBRE_CLAVE: Record<string, string> = {
+  subcontratistas: 'Subcontratistas',
+  talleres: 'Talleres (Planificación)',
+  validaciones: 'Liberaciones',
+  entregas: 'Entregas',
+  bitacora: 'Bitácora diaria',
+  quejas: 'Incidencias',
+  ciclos_taller: 'Seguimiento de ciclos',
+  fechas_prometidas: 'Fechas prometidas',
+  catalogo_talleres: 'Catálogo de talleres',
+  unidades_proyecto: 'Unidades del proyecto',
+  unidades_proyecto_meta: 'Información del Excel importado',
+};
+const nombreClave = (k: string) => NOMBRE_CLAVE[k] || k;
 
 function App() {
   const [loaded, setLoaded] = useState(false);
@@ -42,6 +58,8 @@ function App() {
   const [archivoMeta, setArchivoMeta] = useState<ArchivoImportadoMeta | null>(null);
   const [perfiles, setPerfiles] = useState<Perfil[]>([]);
   const [tallerAbrirId, setTallerAbrirId] = useState<string | null>(null);
+  const [clavesFallidas, setClavesFallidas] = useState<string[]>([]);
+  const [recargando, setRecargando] = useState(false);
 
   const goToTaller = useCallback((tallerId: string) => {
     setTallerAbrirId(tallerId);
@@ -63,8 +81,11 @@ function App() {
       dbGet<ArchivoImportadoMeta | null>('unidades_proyecto_meta', null),
       listarPerfiles(),
     ]);
+    const fallidas = clavesNoConfiables();
     let finalSubs = s;
-    if (!s.length) {
+    // El seed inicial solo aplica si la lectura fue EXITOSA y de verdad no hay subcontratistas;
+    // si la lectura falló, la lista vacía es un fallback y escribir el seed pisaría los datos reales.
+    if (!s.length && !fallidas.includes('subcontratistas')) {
       finalSubs = SEED_SUBCONTRATISTAS;
       await dbSet('subcontratistas', finalSubs);
     }
@@ -80,7 +101,29 @@ function App() {
     setUnidadesProyecto(uni);
     setArchivoMeta(meta);
     setPerfiles(perfs);
+    setClavesFallidas(fallidas);
     setLoaded(true);
+  }, []);
+
+  const reintentarCarga = useCallback(async () => {
+    setRecargando(true);
+    try {
+      await cargarTodo();
+      if (clavesNoConfiables().length === 0) {
+        toast.success('Datos recargados correctamente. Ya puedes guardar con normalidad.');
+      } else {
+        toast.error('Algunos datos siguen sin poder cargarse. Verifica tu conexión e intenta de nuevo.');
+      }
+    } finally {
+      setRecargando(false);
+    }
+  }, [cargarTodo]);
+
+  // Aviso inmediato cada vez que la protección anti-borrado bloquea un guardado
+  useEffect(() => {
+    return onEscrituraBloqueada((key) => {
+      toast.error(`No se guardó: los datos de "${nombreClave(key)}" no cargaron bien al abrir la app. Usa "Reintentar carga" en el aviso superior antes de guardar.`, { duration: 8000 });
+    });
   }, []);
 
   useEffect(() => {
@@ -146,6 +189,23 @@ function App() {
       <Sidebar tab={tabActiva} onChange={setTab} tabsVisibles={tabsVisibles} usuarioNombre={perfil.nombre} />
       <main className="flex-1 overflow-x-hidden p-4 md:p-6">
         <div className="mx-auto max-w-[1800px]">
+          {clavesFallidas.length > 0 && (
+            <div className="no-print mb-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-2.5">
+                <div className="text-[13px] leading-relaxed">
+                  <strong>Protección de datos activa:</strong> no se pudieron cargar {clavesFallidas.map(nombreClave).join(', ')}.
+                  {' '}Para evitar sobrescribir información real con datos incompletos, <strong>el guardado en esos módulos está bloqueado</strong> hasta que la carga se complete. Verifica tu conexión a internet.
+                </div>
+                <button
+                  onClick={reintentarCarga}
+                  disabled={recargando}
+                  className="rounded-md bg-destructive px-3.5 py-1.5 text-[12.5px] font-medium text-destructive-foreground hover:opacity-90 disabled:opacity-60"
+                >
+                  {recargando ? 'Recargando…' : 'Reintentar carga'}
+                </button>
+              </div>
+            </div>
+          )}
           {tabActiva === 'dashboard' && (
             <Dashboard
               subs={subs} talleres={talleres} validaciones={validaciones} entregas={entregas} bitacora={bitacora}
