@@ -3,7 +3,7 @@ import { DatabaseBackup, Download, Upload, AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { descargarRespaldo, restaurarRespaldo } from '@/lib/backup';
+import { descargarRespaldo, restaurarRespaldo, respaldoDeSeguridad } from '@/lib/backup';
 
 interface BackupPanelProps {
   onRestored: () => void;
@@ -36,9 +36,17 @@ export function BackupPanel({ onRestored, showToast }: BackupPanelProps) {
     if (!archivoPendiente) return;
     setRestaurando(true);
     try {
+      // Respaldo de seguridad automático ANTES de tocar nada: si no se puede generar completo
+      // (alguna clave ilegible por mala conexión), se aborta la restauración — restaurar sin red
+      // de seguridad y con datos ilegibles es la receta para perder información.
+      const seguro = await respaldoDeSeguridad('antes_de_restaurar');
+      if (!seguro) {
+        showToast('Restauración cancelada: no se pudo generar el respaldo de seguridad previo. Verifica tu conexión e intenta de nuevo.');
+        return;
+      }
       const resultado = await restaurarRespaldo(archivoPendiente, modo);
       if (resultado.ok) {
-        showToast('Datos restaurados correctamente');
+        showToast('Datos restaurados correctamente. Se descargó un respaldo de seguridad del estado anterior por si necesitas volver atrás.');
         onRestored();
       } else {
         alert(resultado.mensaje);
