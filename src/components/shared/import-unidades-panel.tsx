@@ -6,8 +6,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Badge } from '@/components/ui/badge';
 import { parseReporteUnidades, combinarUnidades, type ImportResultado } from '@/lib/import-unidades';
 import { fmtDate, fmtDateTime, nowISODatetime } from '@/lib/utils-app';
-import { dbSet } from '@/lib/storage';
+
 import type { UnidadProyecto, ArchivoImportadoMeta } from '@/types';
+import { persistir } from '@/lib/persistir';
 
 interface ImportUnidadesPanelProps {
   unidades: UnidadProyecto[];
@@ -53,7 +54,7 @@ export function ImportUnidadesPanel({ unidades, setUnidades, onSaved, archivoMet
       totalImportadas: preview.unidades.length,
     };
     setArchivoMeta(meta);
-    await dbSet('unidades_proyecto_meta', meta);
+    if (!(await persistir('unidades_proyecto_meta', meta))) return;
 
     setPreview(null);
     setArchivoPendiente(null);
