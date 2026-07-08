@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { SubAvatar } from '@/components/shared/sub-avatar';
 import { WeekCalendarPicker } from '@/components/shared/week-calendar-picker';
 import { MonthPicker } from '@/components/shared/month-picker';
@@ -57,11 +58,14 @@ interface TallaresTablaProps {
   subName: (id: string) => string;
   validacionDe: (id: string) => Validacion | undefined;
   renderCells: (t: Taller) => ReactNode;
+  seleccion?: Set<string>;
+  onToggleUno?: (id: string) => void;
+  onToggleVisibles?: (ids: string[], seleccionarTodos: boolean) => void;
 }
 
 /** Tabla de talleres con orden/filtro por columna (clic en encabezado + búsqueda por columna),
  * y orden por día como criterio secundario siempre disponible al limpiar el orden manual. */
-function TallaresTabla({ items, showSub, subName, validacionDe, renderCells }: TallaresTablaProps) {
+function TallaresTabla({ items, showSub, subName, validacionDe, renderCells, seleccion, onToggleUno, onToggleVisibles }: TallaresTablaProps) {
   const columnas: ColumnConfig<Taller>[] = [
     ...(showSub ? [{ key: 'subcontratista', getValue: (t: Taller) => subName(t.subcontratistaId) }] : []),
     { key: 'proyecto', getValue: (t) => t.proyecto },
@@ -78,11 +82,23 @@ function TallaresTabla({ items, showSub, subName, validacionDe, renderCells }: T
   const sortByDia = (a: Taller, b: Taller) => DIAS_ORDER.indexOf(a.dia) - DIAS_ORDER.indexOf(b.dia) || Number(a.prioridad) - Number(b.prioridad);
   const base = useMemo(() => [...items].sort(sortByDia), [items]);
   const { rows, sortKey, sortDir, toggleSort, filters, setFilter } = useSortableFilterableTable(base, columnas);
+  const seleccionActiva = !!seleccion && !!onToggleUno && !!onToggleVisibles;
+  const idsVisibles = rows.map((t) => t.id);
+  const todosVisiblesSeleccionados = seleccionActiva && idsVisibles.length > 0 && idsVisibles.every((id) => seleccion!.has(id));
 
   return (
     <Table>
       <TableHeader>
         <TableRow>
+          {seleccionActiva && (
+            <TableHead className="w-9">
+              <Checkbox
+                checked={todosVisiblesSeleccionados}
+                onCheckedChange={(v) => onToggleVisibles!(idsVisibles, !!v)}
+                aria-label="Seleccionar todos los visibles"
+              />
+            </TableHead>
+          )}
           {showSub && <SortableTableHead label="Subcontratista" columnKey="subcontratista" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.subcontratista} onFilterChange={setFilter} />}
           <SortableTableHead label="Proyecto" columnKey="proyecto" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.proyecto} onFilterChange={setFilter} />
           <SortableTableHead label="Edificio/Villa/Townhouse" columnKey="edificio" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.edificio} onFilterChange={setFilter} />
@@ -100,13 +116,18 @@ function TallaresTabla({ items, showSub, subName, validacionDe, renderCells }: T
       </TableHeader>
       <TableBody>
         {rows.map((t) => (
-          <TableRow key={t.id}>
+          <TableRow key={t.id} data-state={seleccionActiva && seleccion!.has(t.id) ? 'selected' : undefined}>
+            {seleccionActiva && (
+              <TableCell className="w-9">
+                <Checkbox checked={seleccion!.has(t.id)} onCheckedChange={() => onToggleUno!(t.id)} aria-label="Seleccionar taller" />
+              </TableCell>
+            )}
             {showSub && <TableCell className="font-medium">{subName(t.subcontratistaId)}</TableCell>}
             {renderCells(t)}
           </TableRow>
         ))}
         {!rows.length && (
-          <TableRow><TableCell colSpan={showSub ? 15 : 14} className="py-8 text-center text-sm text-muted-foreground">Sin talleres para mostrar.</TableCell></TableRow>
+          <TableRow><TableCell colSpan={(showSub ? 15 : 14) + (seleccionActiva ? 1 : 0)} className="py-8 text-center text-sm text-muted-foreground">Sin talleres para mostrar.</TableCell></TableRow>
         )}
       </TableBody>
     </Table>
@@ -155,6 +176,9 @@ export function PlanificacionSemanal({
   const [previewPlantilla, setPreviewPlantilla] = useState<{ talleres: Omit<Taller, 'id' | 'semana'>[]; totalFilas: number; erroresFila: { fila: number; motivo: string }[] } | null>(null);
   const [arrastreModal, setArrastreModal] = useState<{ talleres: Taller[]; dias: Record<string, DiaSemana> } | null>(null);
   const [diaMasivoArrastre, setDiaMasivoArrastre] = useState<DiaSemana | ''>('');
+  const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
+  const [confirmarBorradoMasivo, setConfirmarBorradoMasivo] = useState(false);
+  const [correccionModal, setCorreccionModal] = useState<{ talleres: Taller[]; semanaDestino: string } | null>(null);
   const plantillaInputRef = useRef<HTMLInputElement>(null);
   const colapsoContratista = useCollapseState();
   const colapsoSemanal = useCollapseState();
@@ -290,6 +314,46 @@ export function PlanificacionSemanal({
     showToast('Taller eliminado');
   };
 
+  const toggleSeleccionUno = (id: string) => {
+    setSeleccion((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  /** Marca o desmarca de golpe todos los talleres visibles en una tabla (respetando filtros/búsqueda).
+   * Si seleccionarTodos es true, agrega esos ids a la selección; si es false, los quita. No toca los
+   * ids que estén seleccionados pero no visibles en ese momento. */
+  const toggleSeleccionVisibles = (ids: string[], seleccionarTodos: boolean) => {
+    setSeleccion((prev) => {
+      const next = new Set(prev);
+      if (seleccionarTodos) ids.forEach((id) => next.add(id));
+      else ids.forEach((id) => next.delete(id));
+      return next;
+    });
+  };
+
+  const limpiarSeleccion = () => setSeleccion(new Set());
+
+  const borrarSeleccionados = async () => {
+    const ids = seleccion;
+    if (ids.size === 0) return;
+    const nextTalleres = talleres.filter((x) => !ids.has(x.id));
+    const nextValidaciones = validaciones.filter((v) => !ids.has(v.tallerId));
+    const nextEntregas = entregas.filter((e) => !ids.has(e.tallerId));
+    setTalleres(nextTalleres);
+    setValidaciones(nextValidaciones);
+    setEntregas(nextEntregas);
+    await dbSet('talleres', nextTalleres);
+    await dbSet('validaciones', nextValidaciones);
+    await dbSet('entregas', nextEntregas);
+    showToast(`${ids.size} taller(es) eliminado(s)`);
+    setSeleccion(new Set());
+    setConfirmarBorradoMasivo(false);
+  };
+
   const atrasados = useMemo(
     () => talleresAtrasados(talleres, validaciones, entregas, semanaActual).filter((t) => t.semana !== semanaActual),
     [talleres, validaciones, entregas, semanaActual]
@@ -319,14 +383,21 @@ export function PlanificacionSemanal({
    * (no asume que el nuevo día es el mismo que tenía antes). Además deja registro permanente de la
    * semana y día ORIGINALES (la primera vez que se planificó, antes de cualquier arrastre) y de
    * cuántas veces se ha arrastrado, para poder detectar talleres que se vienen postergando semana
-   * tras semana en vez de resolverse. */
-  const confirmarArrastre = async () => {
+   * tras semana en vez de resolverse.
+   *
+   * Si esCorreccion es true, el movimiento se trata como un ajuste de ubicación (el taller estaba en
+   * la semana equivocada por error), NO como un arrastre por atraso: no incrementa el contador de
+   * arrastres ni marca semana/día original. */
+  const confirmarArrastre = async (esCorreccion = false) => {
     if (!arrastreModal) return;
     const ahora = nowISODatetime();
     const idsMovidos = new Set(arrastreModal.talleres.map((t) => t.id));
     const nextTalleres = talleres.map((t) => {
       if (!idsMovidos.has(t.id)) return t;
       const diaElegido = arrastreModal.dias[t.id] || t.dia;
+      if (esCorreccion) {
+        return { ...t, semana: semanaActual, dia: diaElegido };
+      }
       return {
         ...t,
         semanaOriginal: t.semanaOriginal || t.semana,
@@ -339,8 +410,32 @@ export function PlanificacionSemanal({
     });
     setTalleres(nextTalleres);
     await dbSet('talleres', nextTalleres);
-    showToast(`${arrastreModal.talleres.length} taller(es) movido(s) a la semana actual`);
+    showToast(esCorreccion
+      ? `${arrastreModal.talleres.length} taller(es) reubicado(s) (sin contar como arrastre)`
+      : `${arrastreModal.talleres.length} taller(es) movido(s) a la semana actual`);
     setArrastreModal(null);
+  };
+
+  const abrirCorreccion = () => {
+    if (seleccion.size === 0) return;
+    const seleccionados = talleres.filter((t) => seleccion.has(t.id));
+    setCorreccionModal({ talleres: seleccionados, semanaDestino: semanaActual });
+  };
+
+  /** Reubica los talleres seleccionados a la semana elegida por el usuario, tratándolo como una
+   * CORRECCIÓN: conserva el mismo día de la semana y NO toca los datos de arrastre (contador, semana
+   * original, etc.). Sirve para cuando un taller quedó en la semana equivocada por error de captura. */
+  const confirmarCorreccion = async () => {
+    if (!correccionModal) return;
+    const idsMovidos = new Set(correccionModal.talleres.map((t) => t.id));
+    const nextTalleres = talleres.map((t) =>
+      idsMovidos.has(t.id) ? { ...t, semana: correccionModal.semanaDestino } : t
+    );
+    setTalleres(nextTalleres);
+    await dbSet('talleres', nextTalleres);
+    showToast(`${correccionModal.talleres.length} taller(es) reubicado(s) a la semana del ${weekRangeLabel(correccionModal.semanaDestino)}`);
+    setCorreccionModal(null);
+    setSeleccion(new Set());
   };
 
   const sortByDiaPrioridad = (a: Taller, b: Taller) =>
@@ -632,6 +727,26 @@ export function PlanificacionSemanal({
             </div>
           )}
 
+          {!soloLectura && vista !== 'semanal' && seleccion.size > 0 && (
+            <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3.5 py-2.5">
+              <span className="text-[13px] font-medium">{seleccion.size} taller(es) seleccionado(s)</span>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={limpiarSeleccion}>Limpiar selección</Button>
+                <Button size="sm" variant="outline" onClick={abrirCorreccion}>
+                  <CalendarDays size={13} />Mover a otra semana
+                </Button>
+                <Button size="sm" variant="destructive" onClick={() => setConfirmarBorradoMasivo(true)}>
+                  <Trash2 size={13} />Eliminar seleccionados
+                </Button>
+              </div>
+            </div>
+          )}
+          {!soloLectura && vista === 'semanal' && seleccion.size > 0 && (
+            <div className="mb-3.5 rounded-lg border border-border bg-muted/30 px-3.5 py-2 text-[12px] text-muted-foreground">
+              Tienes {seleccion.size} taller(es) seleccionado(s) desde otra vista. La selección múltiple con casillas está disponible en las vistas "Por contratista", "Vista global de obra" y "Agrupación personalizada".
+            </div>
+          )}
+
           {vista === 'contratista' && (
             contratistasConTalleres.length ? contratistasConTalleres.map((c) => (
               <CollapsibleGroup
@@ -645,13 +760,13 @@ export function PlanificacionSemanal({
                   </div>
                 }
               >
-                <TallaresTabla items={c.items} showSub={false} subName={subName} validacionDe={validacionDe} renderCells={renderCells} />
+                <TallaresTabla items={c.items} showSub={false} subName={subName} validacionDe={validacionDe} renderCells={renderCells} seleccion={soloLectura ? undefined : seleccion} onToggleUno={toggleSeleccionUno} onToggleVisibles={toggleSeleccionVisibles} />
               </CollapsibleGroup>
             )) : <div className="py-10 text-center text-sm text-muted-foreground">No hay talleres planificados para esta semana. Agrega varios a la vez con el botón de arriba.</div>
           )}
 
           {vista === 'global' && (
-            <TallaresTabla items={globalFiltered} showSub subName={subName} validacionDe={validacionDe} renderCells={renderCells} />
+            <TallaresTabla items={globalFiltered} showSub subName={subName} validacionDe={validacionDe} renderCells={renderCells} seleccion={soloLectura ? undefined : seleccion} onToggleUno={toggleSeleccionUno} onToggleVisibles={toggleSeleccionVisibles} />
           )}
 
           {vista === 'semanal' && (
@@ -717,11 +832,59 @@ export function PlanificacionSemanal({
               nodos={arbolPersonalizado}
               isCollapsed={colapsoPersonalizada.isCollapsed}
               onToggle={colapsoPersonalizada.toggle}
-              renderHoja={(items) => <TallaresTabla items={items} showSub subName={subName} validacionDe={validacionDe} renderCells={renderCells} />}
+              renderHoja={(items) => <TallaresTabla items={items} showSub subName={subName} validacionDe={validacionDe} renderCells={renderCells} seleccion={soloLectura ? undefined : seleccion} onToggleUno={toggleSeleccionUno} onToggleVisibles={toggleSeleccionVisibles} />}
             />
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!correccionModal} onOpenChange={(o) => !o && setCorreccionModal(null)}>
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+          <DialogHeader><DialogTitle>Mover a otra semana (corrección)</DialogTitle></DialogHeader>
+          {correccionModal && (
+            <div className="space-y-3.5">
+              <div className="rounded-md bg-muted/40 p-3 text-[12.5px] leading-relaxed text-muted-foreground">
+                Usa esto cuando un taller quedó en la semana equivocada por error. Se moverá a la semana que elijas <strong>conservando el mismo día</strong>, y <strong>no</strong> se contará como arrastre (no suma al contador ni marca atraso). Para mover talleres atrasados que sí se están postergando, usa el botón "Mover a esta semana" del aviso de atrasados.
+              </div>
+              <div>
+                <div className="mb-1.5 text-[12.5px] font-medium">Semana destino</div>
+                <WeekCalendarPicker
+                  semanaActual={correccionModal.semanaDestino}
+                  onChange={(monday) => setCorreccionModal((prev) => (prev ? { ...prev, semanaDestino: monday } : prev))}
+                />
+              </div>
+              <div className="rounded-md border border-border p-2.5">
+                <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{correccionModal.talleres.length} taller(es) a mover</div>
+                <div className="max-h-[180px] space-y-1 overflow-y-auto text-[12.5px]">
+                  {correccionModal.talleres.map((t) => (
+                    <div key={t.id}>
+                      <span className="font-medium">{subName(t.subcontratistaId)}</span> — {t.esGeneral ? 'General' : `${t.edificio} ${t.unidad}`}
+                      <span className="ml-1.5 text-muted-foreground">(desde semana del {weekRangeLabel(t.semana)}, {t.dia})</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCorreccionModal(null)}>Cancelar</Button>
+            <Button onClick={confirmarCorreccion}>Reubicar sin contar arrastre</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmarBorradoMasivo} onOpenChange={(o) => !o && setConfirmarBorradoMasivo(false)}>
+        <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
+          <DialogHeader><DialogTitle>Eliminar talleres seleccionados</DialogTitle></DialogHeader>
+          <p className="text-[13.5px] leading-relaxed">
+            Vas a eliminar <strong>{seleccion.size} taller(es)</strong> junto con sus validaciones y entregas asociadas. Esta acción no se puede deshacer.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmarBorradoMasivo(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={borrarSeleccionados}><Trash2 size={13} />Eliminar definitivamente</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showMulti} onOpenChange={setShowMulti}>
         <DialogContent className="max-h-[90vh] max-w-[95vw] overflow-y-auto sm:max-w-4xl">
@@ -771,15 +934,20 @@ export function PlanificacionSemanal({
               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setArrastreModal(null)}>Cancelar</Button>
-            <Button onClick={confirmarArrastre}>Confirmar y mover</Button>
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+            <Button variant="ghost" className="text-[12px]" onClick={() => confirmarArrastre(true)}>
+              Fue un error de semana — mover sin contar arrastre
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setArrastreModal(null)}>Cancelar</Button>
+              <Button onClick={() => confirmarArrastre(false)}>Confirmar y mover</Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader><DialogTitle>Editar taller</DialogTitle></DialogHeader>
           {editing && <TallerForm subs={subs} catalogo={catalogo} unidadesProyecto={unidadesProyecto} initial={editing} onSave={saveOne} onCancel={() => setEditing(null)} />}
         </DialogContent>
