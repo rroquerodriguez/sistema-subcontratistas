@@ -2,6 +2,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ImportUnidadesPanel } from '@/components/shared/import-unidades-panel';
 import { BackupPanel } from '@/components/shared/backup-panel';
+import { ResetDatosPanel } from '@/components/shared/reset-datos-panel';
 import { UsuariosPanel } from './usuarios-panel';
 import { dbSet } from '@/lib/storage';
 import type { UnidadProyecto, ArchivoImportadoMeta, Perfil } from '@/types';
@@ -34,6 +35,7 @@ export function SettingsPage({ unidadesProyecto, setUnidadesProyecto, archivoMet
               <TabsTrigger value="datos">Datos del proyecto</TabsTrigger>
               {miPerfil.rol === 'admin' && <TabsTrigger value="usuarios">Usuarios</TabsTrigger>}
               <TabsTrigger value="respaldo">Respaldo</TabsTrigger>
+              {miPerfil.rol === 'admin' && <TabsTrigger value="resetear">Borrar datos</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="general">
@@ -67,6 +69,12 @@ export function SettingsPage({ unidadesProyecto, setUnidadesProyecto, archivoMet
             <TabsContent value="respaldo">
               <BackupPanel onRestored={onRestored} showToast={showToast} />
             </TabsContent>
+
+            {miPerfil.rol === 'admin' && (
+              <TabsContent value="resetear">
+                <ResetDatosPanel onReset={onRestored} showToast={showToast} />
+              </TabsContent>
+            )}
           </Tabs>
         </CardContent>
       </Card>
