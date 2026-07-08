@@ -28,7 +28,6 @@ import { puedeEditar } from '@/lib/auth';
 import { Badge } from '@/components/ui/badge';
 import { MultiTallerForm, type MultiRow } from './multi-taller-form';
 import { TallerForm } from './taller-form';
-import { dbSet } from '@/lib/storage';
 import { descargarPlantillaPlanificacion, parsePlantillaPlanificacion } from '@/lib/import-planificacion';
 import { talleresAtrasados } from '@/lib/stats-engine';
 import { exportPlanificacionExcel, COLUMNAS_PLANIFICACION_DEFAULT } from '@/lib/export-planificacion-excel';
@@ -40,6 +39,7 @@ import { CHECKLIST_ITEMS } from '@/lib/seed-data';
 import { uid, todayISO, nowISODatetime, weekRangeLabel, diffDays, diaLabel, mesKeyActual, mesLabel, semanasDelMes, fmtDate, fmtDateTime, fechaDeISODia } from '@/lib/utils-app';
 import { fechasPrometidasAtrasadas, fechasPrometidasProximas } from '@/lib/stats-engine';
 import type { Subcontratista, Taller, Validacion, Entrega, FechaPrometida, TallerCatalogo, UnidadProyecto, TabId, DiaSemana } from '@/types';
+import { persistir } from '@/lib/persistir';
 
 const DIAS_ORDER = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -223,7 +223,7 @@ export function PlanificacionSemanal({
     });
     if (changed) {
       setCatalogo(next);
-      await dbSet('catalogo_talleres', next);
+      if (!(await persistir('catalogo_talleres', next))) return;
     }
   };
 
@@ -241,8 +241,8 @@ export function PlanificacionSemanal({
     const nextValidaciones = [...validaciones, ...newValidaciones];
     setTalleres(nextTalleres);
     setValidaciones(nextValidaciones);
-    await dbSet('talleres', nextTalleres);
-    await dbSet('validaciones', nextValidaciones);
+    if (!(await persistir('talleres', nextTalleres))) return;
+    if (!(await persistir('validaciones', nextValidaciones))) return;
     await sincronizarCatalogo(newTalleres.map((t) => ({ subcontratistaId: t.subcontratistaId, actividad: t.actividad })));
     setShowMulti(false);
     const liberadosCount = rows.filter((r) => r.marcarLiberado).length;
@@ -273,8 +273,8 @@ export function PlanificacionSemanal({
     const nextValidaciones = [...validaciones, ...newValidaciones];
     setTalleres(nextTalleres);
     setValidaciones(nextValidaciones);
-    await dbSet('talleres', nextTalleres);
-    await dbSet('validaciones', nextValidaciones);
+    if (!(await persistir('talleres', nextTalleres))) return;
+    if (!(await persistir('validaciones', nextValidaciones))) return;
     await sincronizarCatalogo(newTalleres.map((t) => ({ subcontratistaId: t.subcontratistaId, actividad: t.actividad })));
     showToast(`${newTalleres.length} taller(es) importados desde la plantilla — validación pendiente creada para cada uno`);
     setPreviewPlantilla(null);
@@ -293,8 +293,8 @@ export function PlanificacionSemanal({
     }
     setTalleres(nextTalleres);
     setValidaciones(nextValidaciones);
-    await dbSet('talleres', nextTalleres);
-    if (nextValidaciones !== validaciones) await dbSet('validaciones', nextValidaciones);
+    if (!(await persistir('talleres', nextTalleres))) return;
+    if (nextValidaciones !== validaciones && !(await persistir('validaciones', nextValidaciones))) return;
     await sincronizarCatalogo([{ subcontratistaId: item.subcontratistaId, actividad: item.actividad }]);
     setEditing(null);
     showToast(exists ? 'Taller actualizado' : 'Taller agregado');
@@ -308,9 +308,9 @@ export function PlanificacionSemanal({
     setTalleres(nextTalleres);
     setValidaciones(nextValidaciones);
     setEntregas(nextEntregas);
-    await dbSet('talleres', nextTalleres);
-    await dbSet('validaciones', nextValidaciones);
-    await dbSet('entregas', nextEntregas);
+    if (!(await persistir('talleres', nextTalleres))) return;
+    if (!(await persistir('validaciones', nextValidaciones))) return;
+    if (!(await persistir('entregas', nextEntregas))) return;
     showToast('Taller eliminado');
   };
 
@@ -346,9 +346,9 @@ export function PlanificacionSemanal({
     setTalleres(nextTalleres);
     setValidaciones(nextValidaciones);
     setEntregas(nextEntregas);
-    await dbSet('talleres', nextTalleres);
-    await dbSet('validaciones', nextValidaciones);
-    await dbSet('entregas', nextEntregas);
+    if (!(await persistir('talleres', nextTalleres))) return;
+    if (!(await persistir('validaciones', nextValidaciones))) return;
+    if (!(await persistir('entregas', nextEntregas))) return;
     showToast(`${ids.size} taller(es) eliminado(s)`);
     setSeleccion(new Set());
     setConfirmarBorradoMasivo(false);
@@ -409,7 +409,7 @@ export function PlanificacionSemanal({
       };
     });
     setTalleres(nextTalleres);
-    await dbSet('talleres', nextTalleres);
+    if (!(await persistir('talleres', nextTalleres))) return;
     showToast(esCorreccion
       ? `${arrastreModal.talleres.length} taller(es) reubicado(s) (sin contar como arrastre)`
       : `${arrastreModal.talleres.length} taller(es) movido(s) a la semana actual`);
@@ -432,7 +432,7 @@ export function PlanificacionSemanal({
       idsMovidos.has(t.id) ? { ...t, semana: correccionModal.semanaDestino } : t
     );
     setTalleres(nextTalleres);
-    await dbSet('talleres', nextTalleres);
+    if (!(await persistir('talleres', nextTalleres))) return;
     showToast(`${correccionModal.talleres.length} taller(es) reubicado(s) a la semana del ${weekRangeLabel(correccionModal.semanaDestino)}`);
     setCorreccionModal(null);
     setSeleccion(new Set());
