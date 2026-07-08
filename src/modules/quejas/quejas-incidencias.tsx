@@ -235,14 +235,14 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
       </Card>
 
       <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader><DialogTitle>Nueva incidencia</DialogTitle></DialogHeader>
           <QuejaForm subs={subs} talleres={talleres} validaciones={validaciones} entregas={entregas} preselectSub={filtroSub !== 'todos' ? filtroSub : undefined} onSave={save} onCancel={() => setShowNew(false)} />
         </DialogContent>
       </Dialog>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader><DialogTitle>Editar incidencia</DialogTitle></DialogHeader>
           {editing && <QuejaForm subs={subs} talleres={talleres} validaciones={validaciones} entregas={entregas} initial={editing} onSave={save} onCancel={() => setEditing(null)} />}
         </DialogContent>
