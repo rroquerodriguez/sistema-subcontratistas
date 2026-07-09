@@ -10,8 +10,7 @@ import { MonthPicker } from '@/components/shared/month-picker';
 import { ProjectFilter } from '@/components/shared/project-filter';
 import {
   computeStats, tallerDetailList, talleresAtrasados, fechasPrometidasAtrasadas, fechasPrometidasProximas,
-  diasAtrasoFechaPrometida, buildParrafoAnalisisEvaluacion,
-} from '@/lib/stats-engine';
+  diasAtrasoFechaPrometida, buildParrafoAnalisisEvaluacion, tallerEnPeriodo } from '@/lib/stats-engine';
 import { weekRangeLabel, mondayOf, fmtDate, mesKeyActual, mesLabel, semanasDelMes } from '@/lib/utils-app';
 import type { Subcontratista, Taller, Validacion, Entrega, RegistroBitacora, Queja, FechaPrometida, TabId } from '@/types';
 
@@ -34,7 +33,7 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
   const [filtroProyecto, setFiltroProyecto] = useState('todos');
 
   const semanasDelMesActual = useMemo(() => semanasDelMes(mesActual), [mesActual]);
-  const semanaOMes = periodo === 'mensual' ? semanasDelMesActual : semanaSel;
+  const semanaOMes = periodo === 'mensual' ? `mes:${mesActual}` : semanaSel;
   const periodoLabel = periodo === 'mensual' ? `el mes de ${mesLabel(mesActual)}` : `la semana del ${weekRangeLabel(semanaSel)}`;
 
   const talleres = useMemo(
@@ -51,22 +50,23 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
     .sort((a, b) => b.stats.totalTalleres - a.stats.totalTalleres);
 
   const subName = (id: string) => subs.find((s) => s.id === id)?.nombre || '—';
-  const semanasSet = new Set(Array.isArray(semanaOMes) ? semanaOMes : [semanaOMes]);
-  const quejasDelPeriodo = quejas.filter((q) => semanasSet.has(mondayOf(q.fecha)));
+  const quejasDelPeriodo = quejas.filter((q) =>
+    periodo === 'mensual' ? q.fecha.slice(0, 7) === mesActual : mondayOf(q.fecha) === semanaSel
+  );
 
   const noLiberadoActual = talleres.filter((t) => {
     const v = validaciones.find((x) => x.tallerId === t.id);
-    return semanasSet.has(t.semana) && v?.resultado === 'NO LISTO';
+    return tallerEnPeriodo(t, semanaOMes) && v?.resultado === 'NO LISTO';
   });
   const pendientesActual = talleres.filter((t) => {
     const v = validaciones.find((x) => x.tallerId === t.id);
-    return semanasSet.has(t.semana) && (!v || v.resultado === 'PENDIENTE');
+    return tallerEnPeriodo(t, semanaOMes) && (!v || v.resultado === 'PENDIENTE');
   });
   const sinEntregarUrgente = tallerDetailList(null, semanaOMes, talleres, validaciones, entregas, bitacora).filter(
     (d) => d.dias !== null && d.dias > 5 && d.entrega?.estado !== 'ENTREGADO'
   );
   const refSemana = periodo === 'mensual' ? (semanasDelMesActual[semanasDelMesActual.length - 1] || semanaActual) : semanaSel;
-  const atrasados = talleresAtrasados(talleres, validaciones, entregas, refSemana).filter((t) => !semanasSet.has(t.semana));
+  const atrasados = talleresAtrasados(talleres, validaciones, entregas, refSemana).filter((t) => !tallerEnPeriodo(t, semanaOMes));
   const fechasAtrasadas = fechasPrometidasAtrasadas(fechas);
   const fechasProximas = fechasPrometidasProximas(fechas, 5);
 
