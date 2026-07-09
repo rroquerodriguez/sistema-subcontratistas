@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Plus, Pencil, Trash2, Download, Upload, FileSpreadsheet, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Download, Upload, FileSpreadsheet, AlertTriangle, Clock } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,24 +16,28 @@ import { useCollapseState } from '@/lib/use-collapse-state';
 import { SortableTableHead } from '@/components/shared/sortable-table-head';
 import { useSortableFilterableTable, type ColumnConfig } from '@/lib/use-sortable-table';
 import { MultiActividadForm, type MultiActividadRow } from './multi-actividad-form';
+import { EstandaresLoteForm } from './estandares-lote-form';
 
 import { uid } from '@/lib/utils-app';
+import { resumenDiasLaborables } from '@/lib/calendario-laboral';
 import { descargarPlantillaCatalogo, parsePlantillaCatalogo, exportCatalogoExcel, type FilaCatalogoResultado } from '@/lib/import-catalogo';
 import { useUsuarioActual } from '@/lib/usuario-actual-context';
 import { puedeEditar } from '@/lib/auth';
-import type { Subcontratista, TallerCatalogo } from '@/types';
+import type { Subcontratista, TallerCatalogo, CalendarioLaboral } from '@/types';
 import { persistir } from '@/lib/persistir';
 
 interface CatalogoTalleresProps {
   subs: Subcontratista[];
   catalogo: TallerCatalogo[];
   setCatalogo: (c: TallerCatalogo[]) => void;
+  calendario: CalendarioLaboral;
   showToast: (msg: string) => void;
 }
 
 function CatalogoTabla({ items, onEdit, onRemove, soloLectura }: { items: TallerCatalogo[]; onEdit: (c: TallerCatalogo) => void; onRemove: (id: string) => void; soloLectura?: boolean }) {
   const columnas: ColumnConfig<TallerCatalogo>[] = [
     { key: 'actividad', getValue: (c) => c.actividad },
+    { key: 'estandar', getValue: (c) => c.duracionEstandarDias ?? -1 },
     { key: 'notas', getValue: (c) => c.notas },
   ];
   const { rows, sortKey, sortDir, toggleSort, filters, setFilter } = useSortableFilterableTable(items, columnas);
@@ -43,6 +47,7 @@ function CatalogoTabla({ items, onEdit, onRemove, soloLectura }: { items: Taller
       <TableHeader>
         <TableRow>
           <SortableTableHead label="Actividad" columnKey="actividad" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.actividad} onFilterChange={setFilter} />
+          <SortableTableHead label="Estándar" columnKey="estandar" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterable={false} />
           <SortableTableHead label="Notas" columnKey="notas" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.notas} onFilterChange={setFilter} />
           <TableHead />
         </TableRow>
@@ -51,6 +56,16 @@ function CatalogoTabla({ items, onEdit, onRemove, soloLectura }: { items: Taller
         {rows.map((c) => (
           <TableRow key={c.id}>
             <TableCell className="font-medium">{c.actividad}</TableCell>
+            <TableCell className="whitespace-nowrap text-[12.5px]">
+              {c.duracionEstandarDias != null ? (
+                <span>
+                  {c.duracionEstandarDias} día{c.duracionEstandarDias === 1 ? '' : 's'}
+                  {!!c.holguraDias && <span className="text-muted-foreground"> +{c.holguraDias} holgura</span>}
+                </span>
+              ) : (
+                <span className="text-muted-foreground">Sin definir</span>
+              )}
+            </TableCell>
             <TableCell className="text-muted-foreground">{c.notas || '—'}</TableCell>
             <TableCell className="whitespace-nowrap">
               <Button size="icon" variant="outline" className="mr-1.5 h-8 w-8" onClick={() => onEdit(c)} aria-label="Editar" disabled={soloLectura}><Pencil size={14} /></Button>
@@ -63,15 +78,18 @@ function CatalogoTabla({ items, onEdit, onRemove, soloLectura }: { items: Taller
   );
 }
 
-export function CatalogoTalleres({ subs, catalogo, setCatalogo, showToast }: CatalogoTalleresProps) {
+export function CatalogoTalleres({ subs, catalogo, setCatalogo, calendario, showToast }: CatalogoTalleresProps) {
   const usuario = useUsuarioActual();
   const soloLectura = !puedeEditar(usuario.perfil, 'catalogo');
   const [filtroSub, setFiltroSub] = useState('todos');
   const [showMulti, setShowMulti] = useState(false);
+  const [showEstandares, setShowEstandares] = useState(false);
   const [editing, setEditing] = useState<TallerCatalogo | null>(null);
   const [subSel, setSubSel] = useState('');
   const [actividad, setActividad] = useState('');
   const [notas, setNotas] = useState('');
+  const [duracionEstandar, setDuracionEstandar] = useState('');
+  const [holgura, setHolgura] = useState('');
   const [subiendoPlantilla, setSubiendoPlantilla] = useState(false);
   const [previewPlantilla, setPreviewPlantilla] = useState<FilaCatalogoResultado | null>(null);
   const plantillaInputRef = useRef<HTMLInputElement>(null);
@@ -82,6 +100,8 @@ export function CatalogoTalleres({ subs, catalogo, setCatalogo, showToast }: Cat
     setSubSel(t.subcontratistaId);
     setActividad(t.actividad);
     setNotas(t.notas);
+    setDuracionEstandar(t.duracionEstandarDias != null ? String(t.duracionEstandarDias) : '');
+    setHolgura(t.holguraDias != null ? String(t.holguraDias) : '');
   };
 
   const saveMany = async (rows: MultiActividadRow[]) => {
@@ -123,12 +143,34 @@ export function CatalogoTalleres({ subs, catalogo, setCatalogo, showToast }: Cat
     if (!editing) return;
     if (!subSel) { alert('Selecciona un subcontratista'); return; }
     if (!actividad.trim()) { alert('Escribe el nombre de la actividad'); return; }
-    const item: TallerCatalogo = { ...editing, subcontratistaId: subSel, actividad: actividad.trim(), notas };
+    const dur = duracionEstandar.trim() === '' ? undefined : Math.max(0, Math.round(Number(duracionEstandar)));
+    const holg = holgura.trim() === '' ? undefined : Math.max(0, Math.round(Number(holgura)));
+    if (dur !== undefined && (isNaN(dur) || dur === 0)) { alert('La duración estándar debe ser un número de días mayor que 0 (o déjala vacía si no aplica).'); return; }
+    const item: TallerCatalogo = {
+      ...editing,
+      subcontratistaId: subSel,
+      actividad: actividad.trim(),
+      notas,
+      duracionEstandarDias: dur,
+      holguraDias: dur !== undefined ? (holg ?? 0) : undefined,
+    };
     const next = catalogo.map((x) => (x.id === item.id ? item : x));
     setCatalogo(next);
     if (!(await persistir('catalogo_talleres', next))) return;
     setEditing(null);
     showToast('Actividad actualizada');
+  };
+
+  const guardarEstandaresLote = async (cambios: Record<string, { duracion?: number; holgura?: number }>) => {
+    const next = catalogo.map((c) => {
+      const cam = cambios[c.id];
+      if (!cam) return c;
+      return { ...c, duracionEstandarDias: cam.duracion, holguraDias: cam.duracion !== undefined ? (cam.holgura ?? 0) : undefined };
+    });
+    setCatalogo(next);
+    if (!(await persistir('catalogo_talleres', next))) return;
+    setShowEstandares(false);
+    showToast('Estándares de tiempo actualizados');
   };
 
   const remove = async (id: string) => {
@@ -168,6 +210,9 @@ export function CatalogoTalleres({ subs, catalogo, setCatalogo, showToast }: Cat
             </div>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => setShowMulti(true)} disabled={soloLectura}><Plus size={14} />Agregar actividades</Button>
+              <Button variant="outline" onClick={() => setShowEstandares(true)} disabled={soloLectura || catalogo.length === 0}>
+                <Clock size={14} />Estándares de tiempo
+              </Button>
               <Button variant="outline" onClick={() => descargarPlantillaCatalogo(subs)}>
                 <Download size={14} />Descargar plantilla
               </Button>
@@ -208,6 +253,13 @@ export function CatalogoTalleres({ subs, catalogo, setCatalogo, showToast }: Cat
         </CardContent>
       </Card>
 
+      <Dialog open={showEstandares} onOpenChange={setShowEstandares}>
+        <DialogContent className="max-h-[90vh] max-w-[95vw] overflow-y-auto sm:max-w-4xl">
+          <DialogHeader><DialogTitle>Estándares de tiempo por actividad</DialogTitle></DialogHeader>
+          <EstandaresLoteForm subs={subs} catalogo={catalogo} calendario={calendario} onGuardar={guardarEstandaresLote} onCancel={() => setShowEstandares(false)} />
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showMulti} onOpenChange={setShowMulti}>
         <DialogContent className="max-h-[90vh] max-w-[95vw] overflow-y-auto sm:max-w-3xl">
           <DialogHeader><DialogTitle>Agregar actividades al catálogo</DialogTitle></DialogHeader>
@@ -233,6 +285,22 @@ export function CatalogoTalleres({ subs, catalogo, setCatalogo, showToast }: Cat
             <div className="space-y-1.5">
               <Label>Notas (opcional)</Label>
               <Textarea rows={2} value={notas} onChange={(e) => setNotas(e.target.value)} />
+            </div>
+            <div className="rounded-md border border-border bg-muted/20 p-3">
+              <div className="mb-2 text-[12.5px] font-medium">Estándar de tiempo (opcional)</div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-[12.5px]">Duración estándar (días laborables)</Label>
+                  <Input type="number" min={0} value={duracionEstandar} onChange={(e) => setDuracionEstandar(e.target.value)} placeholder="Ej: 3" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[12.5px]">Holgura (días, opcional)</Label>
+                  <Input type="number" min={0} value={holgura} onChange={(e) => setHolgura(e.target.value)} placeholder="0" disabled={duracionEstandar.trim() === ''} />
+                </div>
+              </div>
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                Días laborables ({resumenDiasLaborables(calendario)}) que debería tomar la actividad desde que se libera la unidad. Déjalo vacío si aún no lo defines.
+              </p>
             </div>
           </div>
           <DialogFooter>
