@@ -14,6 +14,7 @@ export const STORAGE_KEYS = [
   'catalogo_talleres',
   'unidades_proyecto',
   'unidades_proyecto_meta',
+  'calendario_laboral',
 ] as const;
 
 /** Grupos de datos que el usuario puede borrar selectivamente desde Configuración. Cada módulo
