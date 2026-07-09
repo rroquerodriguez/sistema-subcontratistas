@@ -10,6 +10,33 @@ export interface Subcontratista {
 
 export type Proyecto = 'PANORAMA PARK' | 'PANORAMA GARDEN';
 export type DiaSemana = 'Lunes' | 'Martes' | 'Miércoles' | 'Jueves' | 'Viernes' | 'Sábado';
+
+/** Los 7 días, para configurar el calendario laboral (incluye Domingo, que DiaSemana no tiene
+ * porque la planificación de talleres nunca usa domingo como día de trabajo). */
+export type DiaSemanaCompleto = 'Lunes' | 'Martes' | 'Miércoles' | 'Jueves' | 'Viernes' | 'Sábado' | 'Domingo';
+
+/** Configuración global del calendario laboral de la obra. Define qué es un "día laborable" para
+ * todo el sistema: es la base contra la que se cuentan las duraciones estándar de las actividades
+ * y se calculan las fechas de conclusión esperadas. Es única para toda la obra (no por proyecto ni
+ * por subcontratista). */
+export interface CalendarioLaboral {
+  /** Días de la semana que se consideran laborables. Por defecto Lunes a Sábado (domingo libre). */
+  diasLaborables: DiaSemanaCompleto[];
+  /** Horario de jornada, documentado y visible en reportes (formato HH:MM 24h). En este nivel el
+   * conteo de duraciones es en días completos; el horario es dato oficial de la obra. */
+  horaEntrada: string;
+  horaSalida: string;
+  /** Fechas no laborables adicionales (feriados), en formato YYYY-MM-DD. Preparado para el futuro;
+   * el conteo ya las salta si están presentes. */
+  feriados: string[];
+}
+
+export const CALENDARIO_LABORAL_DEFAULT: CalendarioLaboral = {
+  diasLaborables: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
+  horaEntrada: '08:00',
+  horaSalida: '17:00',
+  feriados: [],
+};
 export type Prioridad = '1' | '2' | '3';
 
 /** Unidad del proyecto importada del reporte de unidades (Excel general del proyecto) */
@@ -217,6 +244,12 @@ export interface TallerCatalogo {
   subcontratistaId: string;
   actividad: string;
   notas: string;
+  /** Duración estándar de la actividad en días LABORABLES desde que se libera la unidad hasta que
+   * debería concluirse. Vacío/undefined = sin estándar definido (no se evalúa cumplimiento de tiempo). */
+  duracionEstandarDias?: number;
+  /** Holgura/buffer adicional en días laborables sobre el estándar, para la fecha "comprometida"
+   * (más tolerante que el estándar ideal). Default 0. */
+  holguraDias?: number;
 }
 
 export type TabId = 'dashboard' | 'maestro' | 'planificacion' | 'validacion' | 'bitacora' | 'quejas' | 'evaluacion' | 'fechas' | 'catalogo' | 'settings';
