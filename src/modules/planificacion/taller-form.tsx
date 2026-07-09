@@ -6,20 +6,22 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PROYECTOS, DIAS_SEMANA } from '@/lib/seed-data';
-import { uid, fmtDate } from '@/lib/utils-app';
+import { uid, fmtDate, fechaDeISODia } from '@/lib/utils-app';
 import { prioridadPorFechaPromesa } from '@/lib/stats-engine';
-import type { Subcontratista, Taller, Proyecto, DiaSemana, Prioridad, TallerCatalogo, UnidadProyecto } from '@/types';
+import { sumarDiasLaborables } from '@/lib/calendario-laboral';
+import type { Subcontratista, Taller, Proyecto, DiaSemana, Prioridad, TallerCatalogo, UnidadProyecto, CalendarioLaboral } from '@/types';
 
 interface TallerFormProps {
   initial?: Taller;
   subs: Subcontratista[];
   catalogo: TallerCatalogo[];
   unidadesProyecto: UnidadProyecto[];
+  calendario: CalendarioLaboral;
   onSave: (t: Taller) => void;
   onCancel: () => void;
 }
 
-export function TallerForm({ initial, subs, catalogo, unidadesProyecto, onSave, onCancel }: TallerFormProps) {
+export function TallerForm({ initial, subs, catalogo, unidadesProyecto, calendario, onSave, onCancel }: TallerFormProps) {
   const [f, setF] = useState<Taller>(
     initial || {
       id: '', semana: '', subcontratistaId: '', proyecto: 'PANORAMA PARK', edificio: '', unidad: '', esGeneral: false,
@@ -28,6 +30,17 @@ export function TallerForm({ initial, subs, catalogo, unidadesProyecto, onSave, 
   );
   const upd = <K extends keyof Taller>(k: K, v: Taller[K]) => setF((prev) => ({ ...prev, [k]: v }));
   const actividadesSugeridas = catalogo.filter((c) => c.subcontratistaId === f.subcontratistaId).map((c) => c.actividad);
+
+  // Estándar de la actividad elegida (si está en el catálogo del subcontratista y tiene duración)
+  const estandarActividad = catalogo.find(
+    (c) => c.subcontratistaId === f.subcontratistaId && c.actividad.trim().toLowerCase() === f.actividad.trim().toLowerCase() && c.duracionEstandarDias != null
+  );
+  // Fecha de conclusión esperada = fecha del taller (día planificado) + duración estándar + holgura,
+  // contada en días laborables. Es una sugerencia orientativa, no se guarda.
+  const fechaTaller = f.semana && f.dia ? fechaDeISODia(f.semana, f.dia) : '';
+  const fechaEsperada = estandarActividad && fechaTaller
+    ? sumarDiasLaborables(fechaTaller, (estandarActividad.duracionEstandarDias || 0) + (estandarActividad.holguraDias || 0), calendario)
+    : '';
 
   const viviendasUnicas = [...new Set(unidadesProyecto.map((u) => u.edificio).filter(Boolean))];
   const inspectoresUnicos = [...new Set(unidadesProyecto.map((u) => u.inspector).filter(Boolean))];
@@ -122,6 +135,12 @@ export function TallerForm({ initial, subs, catalogo, unidadesProyecto, onSave, 
         <datalist id="actividades-taller-form">
           {actividadesSugeridas.map((a) => <option key={a} value={a} />)}
         </datalist>
+        {estandarActividad && (
+          <div className="mt-1 text-[11px] text-muted-foreground">
+            Estándar: {estandarActividad.duracionEstandarDias} día(s) laborable(s){!!estandarActividad.holguraDias && ` +${estandarActividad.holguraDias} holgura`}.
+            {fechaEsperada && <> Conclusión esperada: <strong>{fmtDate(fechaEsperada)}</strong> (desde el día planificado).</>}
+          </div>
+        )}
       </div>
       <div className="space-y-1.5">
         <Label>Prioridad</Label>
