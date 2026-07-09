@@ -28,7 +28,7 @@ import { construirArbolAgrupado, todasLasKeysAgrupables, keysPorNivel, type Dime
 import { ExportarButton } from '@/components/shared/exportar-button';
 import { BitacoraForm } from './bitacora-form';
 
-import { fmtDate, fmtDateTime, uid, todayISO, mesKeyActual, mesLabel, semanasDelMes, weekRangeLabel, mondayOf } from '@/lib/utils-app';
+import { fmtDate, fmtDateTime, uid, todayISO, mesKeyActual, mesLabel, weekRangeLabel, mondayOf } from '@/lib/utils-app';
 import { DIAS_SEMANA } from '@/lib/seed-data';
 import { buildParrafoAnalisisBitacora, quejasDelTaller } from '@/lib/stats-engine';
 import { exportBitacoraExcel, COLUMNAS_BITACORA, COLUMNAS_BITACORA_DEFAULT } from '@/lib/export-bitacora-excel';
@@ -204,13 +204,12 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
     showToast('Registro eliminado');
   };
 
-  const semanasDelMesSeleccionado = useMemo(() => semanasDelMes(mesSeleccionado), [mesSeleccionado]);
 
   // Filtra registros según el periodo elegido (día exacto, semana completa, o mes completo)
   let filtered = bitacora;
   if (periodo === 'dia') filtered = filtered.filter((b) => b.fecha === diaSeleccionado);
   else if (periodo === 'semana') filtered = filtered.filter((b) => mondayOf(b.fecha) === semanaSeleccionada);
-  else filtered = filtered.filter((b) => semanasDelMesSeleccionado.includes(mondayOf(b.fecha)));
+  else filtered = filtered.filter((b) => b.fecha.slice(0, 7) === mesSeleccionado);
   filtered = filtroSub === 'todos' ? filtered : filtered.filter((b) => talleres.find((t) => t.id === b.tallerId)?.subcontratistaId === filtroSub);
   filtered = filtroProyecto === 'todos' ? filtered : filtered.filter((b) => talleres.find((t) => t.id === b.tallerId)?.proyecto === filtroProyecto);
   filtered = filtroInspector === 'todos' ? filtered : filtered.filter((b) => talleres.find((t) => t.id === b.tallerId)?.inspector === filtroInspector);
