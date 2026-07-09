@@ -3,9 +3,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ImportUnidadesPanel } from '@/components/shared/import-unidades-panel';
 import { BackupPanel } from '@/components/shared/backup-panel';
 import { ResetDatosPanel } from '@/components/shared/reset-datos-panel';
+import { CalendarioLaboralPanel } from '@/components/shared/calendario-laboral-panel';
 import { UsuariosPanel } from './usuarios-panel';
 
-import type { UnidadProyecto, ArchivoImportadoMeta, Perfil } from '@/types';
+import type { UnidadProyecto, ArchivoImportadoMeta, Perfil, CalendarioLaboral } from '@/types';
 import { persistir } from '@/lib/persistir';
 
 interface SettingsPageProps {
@@ -13,12 +14,14 @@ interface SettingsPageProps {
   setUnidadesProyecto: (u: UnidadProyecto[]) => void;
   archivoMeta: ArchivoImportadoMeta | null;
   setArchivoMeta: (m: ArchivoImportadoMeta | null) => void;
+  calendario: CalendarioLaboral;
+  setCalendario: (c: CalendarioLaboral) => void;
   onRestored: () => void;
   showToast: (msg: string) => void;
   miPerfil: Perfil;
 }
 
-export function SettingsPage({ unidadesProyecto, setUnidadesProyecto, archivoMeta, setArchivoMeta, onRestored, showToast, miPerfil }: SettingsPageProps) {
+export function SettingsPage({ unidadesProyecto, setUnidadesProyecto, archivoMeta, setArchivoMeta, calendario, setCalendario, onRestored, showToast, miPerfil }: SettingsPageProps) {
   const guardarUnidades = async (u: UnidadProyecto[]) => {
     if (!(await persistir('unidades_proyecto', u))) return;
   };
@@ -34,6 +37,7 @@ export function SettingsPage({ unidadesProyecto, setUnidadesProyecto, archivoMet
             <TabsList className="mb-4">
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="datos">Datos del proyecto</TabsTrigger>
+              <TabsTrigger value="calendario">Calendario laboral</TabsTrigger>
               {miPerfil.rol === 'admin' && <TabsTrigger value="usuarios">Usuarios</TabsTrigger>}
               <TabsTrigger value="respaldo">Respaldo</TabsTrigger>
               {miPerfil.rol === 'admin' && <TabsTrigger value="resetear">Borrar datos</TabsTrigger>}
@@ -66,6 +70,15 @@ export function SettingsPage({ unidadesProyecto, setUnidadesProyecto, archivoMet
                 <UsuariosPanel miPerfilId={miPerfil.id} showToast={showToast} />
               </TabsContent>
             )}
+
+            <TabsContent value="calendario">
+              <CalendarioLaboralPanel
+                calendario={calendario}
+                onChange={setCalendario}
+                showToast={showToast}
+                soloLectura={miPerfil.rol !== 'admin'}
+              />
+            </TabsContent>
 
             <TabsContent value="respaldo">
               <BackupPanel onRestored={onRestored} showToast={showToast} />
