@@ -19,7 +19,8 @@ import { cargarSesionActual, modulosVisibles, listarPerfiles, type SesionUsuario
 import { UsuarioActualContext } from '@/lib/usuario-actual-context';
 import { SEED_SUBCONTRATISTAS } from '@/lib/seed-data';
 import { mondayOf, todayISO } from '@/lib/utils-app';
-import type { Subcontratista, Taller, Validacion, Entrega, RegistroBitacora, Queja, CicloTaller, FechaPrometida, TallerCatalogo, UnidadProyecto, ArchivoImportadoMeta, Perfil, TabId } from '@/types';
+import type { Subcontratista, Taller, Validacion, Entrega, RegistroBitacora, Queja, CicloTaller, FechaPrometida, TallerCatalogo, UnidadProyecto, ArchivoImportadoMeta, Perfil, TabId, CalendarioLaboral } from '@/types';
+import { CALENDARIO_LABORAL_DEFAULT } from '@/types';
 
 const ORDEN_MODULOS: TabId[] = ['dashboard', 'maestro', 'catalogo', 'planificacion', 'validacion', 'bitacora', 'quejas', 'fechas', 'evaluacion', 'settings'];
 
@@ -57,6 +58,7 @@ function App() {
   const [catalogo, setCatalogo] = useState<TallerCatalogo[]>([]);
   const [unidadesProyecto, setUnidadesProyecto] = useState<UnidadProyecto[]>([]);
   const [archivoMeta, setArchivoMeta] = useState<ArchivoImportadoMeta | null>(null);
+  const [calendario, setCalendario] = useState<CalendarioLaboral>(CALENDARIO_LABORAL_DEFAULT);
   const [perfiles, setPerfiles] = useState<Perfil[]>([]);
   const [tallerAbrirId, setTallerAbrirId] = useState<string | null>(null);
   const [clavesFallidas, setClavesFallidas] = useState<string[]>([]);
@@ -68,7 +70,7 @@ function App() {
   }, []);
 
   const cargarTodo = useCallback(async () => {
-    const [s, t, v, e, b, q, c, f, cat, uni, meta, perfs] = await Promise.all([
+    const [s, t, v, e, b, q, c, f, cat, uni, meta, cal, perfs] = await Promise.all([
       dbGet<Subcontratista[]>('subcontratistas', []),
       dbGet<Taller[]>('talleres', []),
       dbGet<Validacion[]>('validaciones', []),
@@ -80,6 +82,7 @@ function App() {
       dbGet<TallerCatalogo[]>('catalogo_talleres', []),
       dbGet<UnidadProyecto[]>('unidades_proyecto', []),
       dbGet<ArchivoImportadoMeta | null>('unidades_proyecto_meta', null),
+      dbGet<CalendarioLaboral>('calendario_laboral', CALENDARIO_LABORAL_DEFAULT),
       listarPerfiles(),
     ]);
     const fallidas = clavesNoConfiables();
@@ -101,6 +104,7 @@ function App() {
     setCatalogo(cat);
     setUnidadesProyecto(uni);
     setArchivoMeta(meta);
+    setCalendario(cal);
     setPerfiles(perfs);
     setClavesFallidas(fallidas);
     setLoaded(true);
@@ -228,6 +232,7 @@ function App() {
             <SettingsPage
               unidadesProyecto={unidadesProyecto} setUnidadesProyecto={setUnidadesProyecto}
               archivoMeta={archivoMeta} setArchivoMeta={setArchivoMeta}
+              calendario={calendario} setCalendario={setCalendario}
               onRestored={cargarTodo} showToast={showToast} miPerfil={perfil}
             />
           )}
@@ -235,7 +240,7 @@ function App() {
             <MaestroSubcontratistas subs={subs} setSubs={setSubs} talleres={talleres} quejas={quejas} showToast={showToast} />
           )}
           {tabActiva === 'catalogo' && (
-            <CatalogoTalleres subs={subs} catalogo={catalogo} setCatalogo={setCatalogo} showToast={showToast} />
+            <CatalogoTalleres subs={subs} catalogo={catalogo} setCatalogo={setCatalogo} calendario={calendario} showToast={showToast} />
           )}
           {tabActiva === 'planificacion' && (
             <PlanificacionSemanal
@@ -244,7 +249,7 @@ function App() {
               entregas={entregas} setEntregas={setEntregas}
               semanaActual={semanaActual} setSemanaActual={setSemanaActual}
               showToast={showToast} goTo={setTab} goToTaller={goToTaller} fechas={fechas}
-              catalogo={catalogo} setCatalogo={setCatalogo} unidadesProyecto={unidadesProyecto}
+              catalogo={catalogo} setCatalogo={setCatalogo} unidadesProyecto={unidadesProyecto} calendario={calendario}
             />
           )}
           {tabActiva === 'validacion' && (
