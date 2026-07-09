@@ -17,11 +17,10 @@ import { CollapsibleGroup } from '@/components/shared/collapsible-group';
 import { TallerDetailTable } from './taller-detail-table';
 import {
   computeStats, tallerDetailListExt, buildNarrative, historialIncidenciasContratista, buildParrafoAnalisisEvaluacion,
-  fechasPrometidasDelContratista, estaAtrasada, estaCumplida,
-} from '@/lib/stats-engine';
+  fechasPrometidasDelContratista, estaAtrasada, estaCumplida, tallerEnPeriodo } from '@/lib/stats-engine';
 import { exportEvaluacionExcel } from '@/lib/export-excel';
 import { exportEvaluacionPDF } from '@/lib/export-pdf';
-import { weekRangeLabel, mesKeyActual, mesLabel, semanasDelMes } from '@/lib/utils-app';
+import { weekRangeLabel, mesKeyActual, mesLabel } from '@/lib/utils-app';
 import type { Subcontratista, Taller, Validacion, Entrega, RegistroBitacora, Queja, CicloTaller, FechaPrometida } from '@/types';
 
 interface EvaluacionSemanalProps {
@@ -50,8 +49,7 @@ export function EvaluacionSemanal({ subs, talleres: talleresTodos, validaciones,
     [talleresTodos, filtroProyecto]
   );
 
-  const semanasDelMesActual = useMemo(() => semanasDelMes(mesActual), [mesActual]);
-  const semanaOMes = periodo === 'mensual' ? semanasDelMesActual : semanaActual;
+  const semanaOMes = periodo === 'mensual' ? `mes:${mesActual}` : semanaActual;
   const periodoLabel = periodo === 'mensual' ? `el mes de ${mesLabel(mesActual)}` : `la semana del ${weekRangeLabel(semanaActual)}`;
   const periodoLabelCorto = periodo === 'mensual' ? mesLabel(mesActual) : `Semana del ${weekRangeLabel(semanaActual)}`;
 
@@ -77,8 +75,7 @@ export function EvaluacionSemanal({ subs, talleres: talleresTodos, validaciones,
   );
 
   const subsConTalleres = useMemo(() => {
-    const semanasSet = Array.isArray(semanaOMes) ? new Set(semanaOMes) : null;
-    return subs.filter((s) => talleres.some((t) => (semanasSet ? semanasSet.has(t.semana) : t.semana === semanaOMes) && t.subcontratistaId === s.id));
+    return subs.filter((s) => talleres.some((t) => tallerEnPeriodo(t, semanaOMes) && t.subcontratistaId === s.id));
   }, [subs, talleres, semanaOMes]);
 
   const grupos = useMemo(() => {
