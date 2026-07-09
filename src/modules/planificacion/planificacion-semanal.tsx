@@ -38,7 +38,7 @@ import { ColumnSelector } from '@/components/shared/column-selector';
 import { CHECKLIST_ITEMS } from '@/lib/seed-data';
 import { uid, todayISO, nowISODatetime, weekRangeLabel, diffDays, diaLabel, mesKeyActual, mesLabel, fmtDate, fmtDateTime, fechaDeISODia } from '@/lib/utils-app';
 import { fechasPrometidasAtrasadas, fechasPrometidasProximas } from '@/lib/stats-engine';
-import type { Subcontratista, Taller, Validacion, Entrega, FechaPrometida, TallerCatalogo, UnidadProyecto, TabId, DiaSemana } from '@/types';
+import type { Subcontratista, Taller, Validacion, Entrega, FechaPrometida, TallerCatalogo, UnidadProyecto, TabId, DiaSemana, CalendarioLaboral } from '@/types';
 import { persistir } from '@/lib/persistir';
 
 const DIAS_ORDER = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -151,11 +151,12 @@ interface PlanificacionSemanalProps {
   catalogo: TallerCatalogo[];
   setCatalogo: (c: TallerCatalogo[]) => void;
   unidadesProyecto: UnidadProyecto[];
+  calendario: CalendarioLaboral;
 }
 
 export function PlanificacionSemanal({
   subs, talleres, setTalleres, validaciones, setValidaciones, entregas, setEntregas,
-  semanaActual, setSemanaActual, showToast, goTo, goToTaller, fechas, catalogo, setCatalogo, unidadesProyecto,
+  semanaActual, setSemanaActual, showToast, goTo, goToTaller, fechas, catalogo, setCatalogo, unidadesProyecto, calendario,
 }: PlanificacionSemanalProps) {
   const usuario = useUsuarioActual();
   const soloLectura = !puedeEditar(usuario.perfil, 'planificacion');
@@ -948,7 +949,7 @@ export function PlanificacionSemanal({
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader><DialogTitle>Editar taller</DialogTitle></DialogHeader>
-          {editing && <TallerForm subs={subs} catalogo={catalogo} unidadesProyecto={unidadesProyecto} initial={editing} onSave={saveOne} onCancel={() => setEditing(null)} />}
+          {editing && <TallerForm subs={subs} catalogo={catalogo} unidadesProyecto={unidadesProyecto} calendario={calendario} initial={editing} onSave={saveOne} onCancel={() => setEditing(null)} />}
         </DialogContent>
       </Dialog>
 
