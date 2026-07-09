@@ -29,14 +29,14 @@ import { Badge } from '@/components/ui/badge';
 import { MultiTallerForm, type MultiRow } from './multi-taller-form';
 import { TallerForm } from './taller-form';
 import { descargarPlantillaPlanificacion, parsePlantillaPlanificacion } from '@/lib/import-planificacion';
-import { talleresAtrasados } from '@/lib/stats-engine';
+import { talleresAtrasados, tallerEnMes } from '@/lib/stats-engine';
 import { exportPlanificacionExcel, COLUMNAS_PLANIFICACION_DEFAULT } from '@/lib/export-planificacion-excel';
 import { exportPlanificacionSemanalExcel } from '@/lib/export-planificacion-semanal-excel';
 import { exportPlanificacionSemanalPDF } from '@/lib/export-planificacion-semanal-pdf';
 import { exportPlanificacionPDF } from '@/lib/export-planificacion-pdf';
 import { ColumnSelector } from '@/components/shared/column-selector';
 import { CHECKLIST_ITEMS } from '@/lib/seed-data';
-import { uid, todayISO, nowISODatetime, weekRangeLabel, diffDays, diaLabel, mesKeyActual, mesLabel, semanasDelMes, fmtDate, fmtDateTime, fechaDeISODia } from '@/lib/utils-app';
+import { uid, todayISO, nowISODatetime, weekRangeLabel, diffDays, diaLabel, mesKeyActual, mesLabel, fmtDate, fmtDateTime, fechaDeISODia } from '@/lib/utils-app';
 import { fechasPrometidasAtrasadas, fechasPrometidasProximas } from '@/lib/stats-engine';
 import type { Subcontratista, Taller, Validacion, Entrega, FechaPrometida, TallerCatalogo, UnidadProyecto, TabId, DiaSemana } from '@/types';
 import { persistir } from '@/lib/persistir';
@@ -184,13 +184,12 @@ export function PlanificacionSemanal({
   const colapsoSemanal = useCollapseState();
   const colapsoPersonalizada = useCollapseState();
 
-  const semanasDelMesActual = useMemo(() => semanasDelMes(mesActual), [mesActual]);
   const semanaTalleres = useMemo(
     () => talleres.filter((t) =>
-      (periodo === 'mensual' ? semanasDelMesActual.includes(t.semana) : t.semana === semanaActual) &&
+      (periodo === 'mensual' ? tallerEnMes(t, mesActual) : t.semana === semanaActual) &&
       (filtroProyecto === 'todos' || t.proyecto === filtroProyecto)
     ),
-    [talleres, periodo, semanasDelMesActual, semanaActual, filtroProyecto]
+    [talleres, periodo, mesActual, semanaActual, filtroProyecto]
   );
   const periodoLabel = periodo === 'mensual' ? `el mes de ${mesLabel(mesActual)}` : `la semana del ${weekRangeLabel(semanaActual)}`;
   const subName = (id: string) => subs.find((s) => s.id === id)?.nombre || '—';
