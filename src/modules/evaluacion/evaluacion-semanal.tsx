@@ -18,10 +18,12 @@ import { TallerDetailTable } from './taller-detail-table';
 import {
   computeStats, tallerDetailListExt, buildNarrative, historialIncidenciasContratista, buildParrafoAnalisisEvaluacion,
   fechasPrometidasDelContratista, estaAtrasada, estaCumplida, tallerEnPeriodo } from '@/lib/stats-engine';
+import { analizarResponsabilidad, resumenResponsabilidad } from '@/lib/responsabilidad';
+import { ResponsabilidadPanel } from '@/components/shared/responsabilidad-panel';
 import { exportEvaluacionExcel } from '@/lib/export-excel';
 import { exportEvaluacionPDF } from '@/lib/export-pdf';
 import { weekRangeLabel, mesKeyActual, mesLabel } from '@/lib/utils-app';
-import type { Subcontratista, Taller, Validacion, Entrega, RegistroBitacora, Queja, CicloTaller, FechaPrometida } from '@/types';
+import type { Subcontratista, Taller, Validacion, Entrega, RegistroBitacora, Queja, CicloTaller, FechaPrometida, TallerCatalogo, CalendarioLaboral } from '@/types';
 
 interface EvaluacionSemanalProps {
   subs: Subcontratista[];
@@ -34,9 +36,11 @@ interface EvaluacionSemanalProps {
   semanaActual: string;
   setSemanaActual: (s: string) => void;
   fechas: FechaPrometida[];
+  catalogo: TallerCatalogo[];
+  calendario: CalendarioLaboral;
 }
 
-export function EvaluacionSemanal({ subs, talleres: talleresTodos, validaciones, entregas, bitacora, quejas, ciclos, semanaActual, setSemanaActual, fechas }: EvaluacionSemanalProps) {
+export function EvaluacionSemanal({ subs, talleres: talleresTodos, validaciones, entregas, bitacora, quejas, ciclos, semanaActual, setSemanaActual, fechas, catalogo, calendario }: EvaluacionSemanalProps) {
   const [subFiltroId, setSubFiltroId] = useState('todos');
   const [viewPhotos, setViewPhotos] = useState<string[] | null>(null);
   const [periodo, setPeriodo] = useState<'semanal' | 'mensual'>('semanal');
@@ -61,6 +65,16 @@ export function EvaluacionSemanal({ subs, talleres: talleresTodos, validaciones,
     () => tallerDetailListExt(subFiltro?.id || null, semanaOMes, talleres, validaciones, entregas, bitacora, quejas, ciclos, fechas),
     [subFiltro, semanaOMes, talleres, validaciones, entregas, bitacora, quejas, ciclos, fechas]
   );
+  const resumenResp = useMemo(() => {
+    const entregados = talleres.filter((t) =>
+      tallerEnPeriodo(t, semanaOMes) &&
+      (!subFiltro || t.subcontratistaId === subFiltro.id) &&
+      entregas.some((e) => e.tallerId === t.id && e.estado === 'ENTREGADO')
+    );
+    return resumenResponsabilidad(entregados.map((t) =>
+      analizarResponsabilidad(t, validaciones.find((v) => v.tallerId === t.id), entregas.find((e) => e.tallerId === t.id), catalogo, calendario)
+    ));
+  }, [subFiltro, semanaOMes, talleres, validaciones, entregas, catalogo, calendario]);
   const narrativa = useMemo(() => buildNarrative(subFiltro, stats, detailList), [subFiltro, stats, detailList]);
   const parrafoAnalisis = useMemo(() => buildParrafoAnalisisEvaluacion(subFiltro, stats, periodoLabel), [subFiltro, stats, periodoLabel]);
 
@@ -143,6 +157,11 @@ export function EvaluacionSemanal({ subs, talleres: talleresTodos, validaciones,
             <MetricCard label="% liberado para trabajar" value={`${stats.pctLiberado}%`} icon={LockOpen} colorBg="hsl(142 71% 92%)" colorFg="hsl(142 71% 30%)" />
             <MetricCard label="% cumplimiento (entregado/planificado)" value={`${stats.pctCumplimiento}%`} icon={Package} colorBg="hsl(38 92% 92%)" colorFg="hsl(38 92% 35%)" />
             <MetricCard label="Prom. días" value={stats.promedioDias ?? '—'} icon={Clock3} colorBg="hsl(204 19% 90%)" colorFg="#36454F" />
+          </div>
+
+          <div className="mb-5">
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-primary">Cumplimiento por responsabilidad</div>
+            <ResponsabilidadPanel resumen={resumenResp} />
           </div>
 
           {subFiltro && (
