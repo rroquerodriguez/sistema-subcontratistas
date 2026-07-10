@@ -225,7 +225,7 @@ function App() {
           {tabActiva === 'dashboard' && (
             <Dashboard
               subs={subs} talleres={talleres} validaciones={validaciones} entregas={entregas} bitacora={bitacora}
-              quejas={quejas} fechas={fechas} semanaActual={semanaActual} goTo={setTab}
+              quejas={quejas} fechas={fechas} catalogo={catalogo} calendario={calendario} semanaActual={semanaActual} goTo={setTab}
             />
           )}
           {tabActiva === 'settings' && (
@@ -276,7 +276,7 @@ function App() {
             <EvaluacionSemanal
               subs={subs} talleres={talleres} validaciones={validaciones} entregas={entregas}
               bitacora={bitacora} quejas={quejas} ciclos={ciclos} semanaActual={semanaActual} setSemanaActual={setSemanaActual}
-              fechas={fechas}
+              fechas={fechas} catalogo={catalogo} calendario={calendario}
             />
           )}
         </div>
