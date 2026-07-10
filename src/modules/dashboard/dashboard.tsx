@@ -11,8 +11,10 @@ import { ProjectFilter } from '@/components/shared/project-filter';
 import {
   computeStats, tallerDetailList, talleresAtrasados, fechasPrometidasAtrasadas, fechasPrometidasProximas,
   diasAtrasoFechaPrometida, buildParrafoAnalisisEvaluacion, tallerEnPeriodo } from '@/lib/stats-engine';
+import { analizarResponsabilidad, resumenResponsabilidad } from '@/lib/responsabilidad';
+import { ResponsabilidadPanel } from '@/components/shared/responsabilidad-panel';
 import { weekRangeLabel, mondayOf, fmtDate, mesKeyActual, mesLabel, semanasDelMes } from '@/lib/utils-app';
-import type { Subcontratista, Taller, Validacion, Entrega, RegistroBitacora, Queja, FechaPrometida, TabId } from '@/types';
+import type { Subcontratista, Taller, Validacion, Entrega, RegistroBitacora, Queja, FechaPrometida, TabId, TallerCatalogo, CalendarioLaboral } from '@/types';
 
 interface DashboardProps {
   subs: Subcontratista[];
@@ -22,11 +24,13 @@ interface DashboardProps {
   bitacora: RegistroBitacora[];
   quejas: Queja[];
   fechas: FechaPrometida[];
+  catalogo: TallerCatalogo[];
+  calendario: CalendarioLaboral;
   semanaActual: string;
   goTo: (tab: TabId) => void;
 }
 
-export function Dashboard({ subs, talleres: talleresTodos, validaciones, entregas, bitacora, quejas, fechas, semanaActual, goTo }: DashboardProps) {
+export function Dashboard({ subs, talleres: talleresTodos, validaciones, entregas, bitacora, quejas, fechas, catalogo, calendario, semanaActual, goTo }: DashboardProps) {
   const [periodo, setPeriodo] = useState<'semanal' | 'mensual'>('semanal');
   const [mesActual, setMesActual] = useState(mesKeyActual());
   const [semanaSel, setSemanaSel] = useState(semanaActual);
@@ -70,6 +74,16 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
   const fechasAtrasadas = fechasPrometidasAtrasadas(fechas);
   const fechasProximas = fechasPrometidasProximas(fechas, 5);
 
+  // Análisis de responsabilidad: entregas del periodo (por fecha real del taller), descompuestas en
+  // liberación (nuestra) vs. ejecución (contratista) vs. entrega final (cliente).
+  const resumenResp = useMemo(() => {
+    const entregadosPeriodo = talleres.filter((t) => tallerEnPeriodo(t, semanaOMes) && entregas.some((e) => e.tallerId === t.id && e.estado === 'ENTREGADO'));
+    const analisis = entregadosPeriodo.map((t) =>
+      analizarResponsabilidad(t, validaciones.find((v) => v.tallerId === t.id), entregas.find((e) => e.tallerId === t.id), catalogo, calendario)
+    );
+    return resumenResponsabilidad(analisis);
+  }, [talleres, validaciones, entregas, catalogo, calendario, semanaOMes]);
+
   const hayAtencion = noLiberadoActual.length || pendientesActual.length || quejasDelPeriodo.length || sinEntregarUrgente.length || atrasados.length || fechasAtrasadas.length || fechasProximas.length;
 
   return (
@@ -101,6 +115,16 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
         <MetricCard label="% cumplimiento (entregado/planificado)" value={`${stats.pctCumplimiento}%`} icon={Package} colorBg="hsl(38 92% 92%)" colorFg="hsl(38 92% 35%)" />
         <MetricCard label="Incidencias del periodo" value={quejasDelPeriodo.length} icon={AlertTriangle} colorBg="hsl(0 70% 93%)" colorFg="hsl(0 70% 45%)" />
       </div>
+
+      <Card>
+        <CardContent className="p-5">
+          <div className="mb-1 text-[15.5px] font-medium">Cumplimiento por responsabilidad</div>
+          <div className="mb-3 text-[12px] text-muted-foreground">
+            De las entregas del periodo: separa lo que depende de nosotros (liberar la unidad a tiempo) de lo que depende del contratista (ejecutar dentro del estándar), y el cumplimiento final ante el cliente.
+          </div>
+          <ResponsabilidadPanel resumen={resumenResp} />
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
