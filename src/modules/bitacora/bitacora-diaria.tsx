@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { PhotoViewer } from '@/components/shared/photo-viewer';
 import { CicloTallerPanel } from '@/components/shared/ciclo-taller-panel';
@@ -16,6 +15,7 @@ import { MonthPicker } from '@/components/shared/month-picker';
 import { ProjectFilter } from '@/components/shared/project-filter';
 import { InspectorFilter } from '@/components/shared/inspector-filter';
 import { CollapsibleGroup } from '@/components/shared/collapsible-group';
+import { ResponsiveDialog } from '@/components/shared/responsive-dialog';
 import { ExpandCollapseAllButtons } from '@/components/shared/expand-collapse-all-button';
 import { NivelCollapseControls } from '@/components/shared/nivel-collapse-controls';
 import { useCollapseState } from '@/lib/use-collapse-state';
@@ -83,7 +83,7 @@ function RegistrosTabla({
 
   return (
     <Table>
-      <TableHeader>
+      <TableHeader sticky>
         <TableRow>
           <SortableTableHead label="Fecha" columnKey="fecha" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterable={false} />
           <SortableTableHead label="Taller" columnKey="taller" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.taller} onFilterChange={setFilter} />
@@ -443,19 +443,13 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
         </CardContent>
       </Card>
 
-      <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader><DialogTitle>Nuevo registro de bitácora</DialogTitle></DialogHeader>
-          <BitacoraForm subs={subs} talleres={talleres} onSave={save} onCancel={() => setShowNew(false)} />
-        </DialogContent>
-      </Dialog>
+      <ResponsiveDialog open={showNew} onOpenChange={setShowNew} title="Nuevo registro de bitácora">
+        <BitacoraForm subs={subs} talleres={talleres} onSave={save} onCancel={() => setShowNew(false)} />
+      </ResponsiveDialog>
 
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader><DialogTitle>Editar registro</DialogTitle></DialogHeader>
-          {editing && <BitacoraForm subs={subs} talleres={talleres} initial={editing} onSave={save} onCancel={() => setEditing(null)} />}
-        </DialogContent>
-      </Dialog>
+      <ResponsiveDialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)} title="Editar registro">
+        {editing && <BitacoraForm subs={subs} talleres={talleres} initial={editing} onSave={save} onCancel={() => setEditing(null)} />}
+      </ResponsiveDialog>
 
       <PhotoViewer photos={viewPhotos} onClose={() => setViewPhotos(null)} />
     </div>
