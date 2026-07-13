@@ -1,7 +1,9 @@
-import { LayoutDashboard, Users, CalendarDays, ClipboardCheck, NotebookPen, AlertTriangle, BarChart3, Building2, CalendarClock, ListChecks, Settings, LogOut } from 'lucide-react';
+import { useState } from 'react';
+import { LayoutDashboard, Users, CalendarDays, ClipboardCheck, NotebookPen, AlertTriangle, BarChart3, Building2, CalendarClock, ListChecks, Settings, LogOut, MoreHorizontal } from 'lucide-react';
 import type { TabId } from '@/types';
 import { cn } from '@/lib/utils';
 import { cerrarSesion } from '@/lib/auth';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'dashboard', label: 'Resumen', icon: LayoutDashboard },
@@ -16,6 +18,15 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'settings', label: 'Configuración', icon: Settings },
 ];
 
+/** Módulos de uso diario en campo, que van en la barra inferior de móvil (zona natural del pulgar).
+ * El resto queda accesible en el panel "Más". Etiquetas cortas para que quepan en pantalla chica. */
+const TABS_MOVIL_PRINCIPALES: { id: TabId; labelCorto: string }[] = [
+  { id: 'dashboard', labelCorto: 'Resumen' },
+  { id: 'planificacion', labelCorto: 'Plan' },
+  { id: 'validacion', labelCorto: 'Liberar' },
+  { id: 'bitacora', labelCorto: 'Bitácora' },
+];
+
 interface SidebarProps {
   tab: TabId;
   onChange: (t: TabId) => void;
@@ -25,19 +36,86 @@ interface SidebarProps {
 
 export function Sidebar({ tab, onChange, tabsVisibles, usuarioNombre }: SidebarProps) {
   const tabsAMostrar = tabsVisibles ? TABS.filter((t) => tabsVisibles.includes(t.id)) : TABS;
-  const primerNombre = usuarioNombre?.split(' ')[0] || '';
+  const [sheetAbierto, setSheetAbierto] = useState(false);
+
+  // En móvil: los principales visibles en la barra inferior (solo los permitidos para este usuario)
+  const principalesMovil = TABS_MOVIL_PRINCIPALES
+    .filter((p) => tabsAMostrar.some((t) => t.id === p.id))
+    .map((p) => ({ ...TABS.find((t) => t.id === p.id)!, labelCorto: p.labelCorto }));
+  const idsPrincipales = principalesMovil.map((p) => p.id);
+  const restoMovil = tabsAMostrar.filter((t) => !idsPrincipales.includes(t.id));
+  const activoEnResto = restoMovil.some((t) => t.id === tab);
+
+  const irA = (id: TabId) => {
+    onChange(id);
+    setSheetAbierto(false);
+  };
 
   return (
-    <aside className="no-print flex w-full flex-shrink-0 flex-row items-center gap-2 bg-sidebar-bg p-3 text-sidebar-fg md:w-[220px] md:flex-col md:items-stretch md:gap-0 md:p-5">
-      <div className="hidden px-2.5 pb-5 pt-1 md:block">
-        <p className="flex items-center gap-2 font-heading text-[15px] font-bold text-white">
-          <Building2 size={18} />
+    <>
+      {/* ESCRITORIO: sidebar lateral clásico (sin cambios) */}
+      <aside className="no-print hidden w-[220px] flex-shrink-0 flex-col bg-sidebar-bg p-5 text-sidebar-fg md:flex">
+        <div className="px-2.5 pb-5 pt-1">
+          <p className="flex items-center gap-2 font-heading text-[15px] font-bold text-white">
+            <Building2 size={18} />
+            Control de obra
+          </p>
+          <p className="pl-[26px] text-[11.5px] text-sidebar-muted">Panorama Park · Garden</p>
+        </div>
+        <nav className="flex flex-1 flex-col gap-1.5">
+          {tabsAMostrar.map((t) => {
+            const Icon = t.icon;
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => onChange(t.id)}
+                className={cn(
+                  'flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] font-medium transition-colors',
+                  active ? 'bg-sidebar-active text-white' : 'text-sidebar-muted hover:bg-sidebar-hover hover:text-white'
+                )}
+              >
+                <Icon size={16} />
+                {t.label}
+              </button>
+            );
+          })}
+        </nav>
+        {usuarioNombre && (
+          <div className="mt-3 border-t border-white/10 pt-3">
+            <div className="mb-2 px-2.5 text-[12px] text-sidebar-muted">{usuarioNombre}</div>
+            <button
+              onClick={() => cerrarSesion()}
+              className="flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left text-[13px] font-medium text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white"
+            >
+              <LogOut size={15} />
+              Cerrar sesión
+            </button>
+          </div>
+        )}
+      </aside>
+
+      {/* MÓVIL: encabezado compacto con identidad y cierre de sesión */}
+      <header className="no-print flex items-center justify-between bg-sidebar-bg px-4 py-2.5 text-sidebar-fg md:hidden">
+        <p className="flex items-center gap-2 font-heading text-[14px] font-bold text-white">
+          <Building2 size={16} />
           Control de obra
         </p>
-        <p className="pl-[26px] text-[11.5px] text-sidebar-muted">Panorama Park · Garden</p>
-      </div>
-      <nav className="flex flex-1 gap-1.5 overflow-x-auto md:flex-col md:overflow-visible">
-        {tabsAMostrar.map((t) => {
+        {usuarioNombre && (
+          <button
+            onClick={() => cerrarSesion()}
+            title={`Cerrar sesión (${usuarioNombre})`}
+            className="flex items-center gap-1.5 rounded-[10px] border border-white/15 px-2.5 py-1.5 text-[12px] font-medium text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white"
+          >
+            <LogOut size={14} />
+            {usuarioNombre.split(' ')[0]}
+          </button>
+        )}
+      </header>
+
+      {/* MÓVIL: barra de navegación INFERIOR (zona natural del pulgar), siempre visible */}
+      <nav className="no-print fixed bottom-0 left-0 right-0 z-40 flex border-t border-white/10 bg-sidebar-bg pb-[env(safe-area-inset-bottom)] text-sidebar-fg md:hidden">
+        {principalesMovil.map((t) => {
           const Icon = t.icon;
           const active = tab === t.id;
           return (
@@ -45,40 +123,57 @@ export function Sidebar({ tab, onChange, tabsVisibles, usuarioNombre }: SidebarP
               key={t.id}
               onClick={() => onChange(t.id)}
               className={cn(
-                'flex w-auto flex-shrink-0 items-center gap-2.5 whitespace-nowrap rounded-[10px] px-3 py-2.5 text-left text-[13.5px] font-medium transition-colors md:w-full',
-                active ? 'bg-sidebar-active text-white' : 'text-sidebar-muted hover:bg-sidebar-hover hover:text-white'
+                'relative flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10.5px] font-medium transition-colors',
+                active ? 'text-white' : 'text-sidebar-muted'
               )}
             >
-              <Icon size={16} />
-              {t.label}
+              <Icon size={19} />
+              {t.labelCorto}
+              {active && <span className="absolute top-0 h-0.5 w-10 rounded-b bg-white" />}
             </button>
           );
         })}
+        {restoMovil.length > 0 && (
+          <Sheet open={sheetAbierto} onOpenChange={setSheetAbierto}>
+            <SheetTrigger asChild>
+              <button
+                className={cn(
+                  'relative flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10.5px] font-medium transition-colors',
+                  activoEnResto ? 'text-white' : 'text-sidebar-muted'
+                )}
+              >
+                <MoreHorizontal size={19} />
+                Más
+                {activoEnResto && <span className="absolute top-0 h-0.5 w-10 rounded-b bg-white" />}
+              </button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="rounded-t-2xl">
+              <SheetHeader className="mb-3 text-left">
+                <SheetTitle>Más módulos</SheetTitle>
+              </SheetHeader>
+              <div className="grid grid-cols-2 gap-2 pb-4">
+                {restoMovil.map((t) => {
+                  const Icon = t.icon;
+                  const active = tab === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => irA(t.id)}
+                      className={cn(
+                        'flex min-h-[52px] items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left text-[13px] font-medium transition-colors',
+                        active ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted/60'
+                      )}
+                    >
+                      <Icon size={17} />
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </SheetContent>
+          </Sheet>
+        )}
       </nav>
-      {/* Cerrar sesión en MÓVIL: anclado a la derecha, siempre visible (fuera de la tira que se
-          desliza), con el nombre del usuario conectado — clave en teléfonos compartidos en obra. */}
-      {usuarioNombre && (
-        <button
-          onClick={() => cerrarSesion()}
-          title={`Cerrar sesión (${usuarioNombre})`}
-          className="flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border border-white/15 px-3 py-2.5 text-[12.5px] font-medium text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white md:hidden"
-        >
-          <LogOut size={15} />
-          {primerNombre ? `Salir · ${primerNombre}` : 'Salir'}
-        </button>
-      )}
-      {usuarioNombre && (
-        <div className="mt-3 hidden border-t border-white/10 pt-3 md:block">
-          <div className="mb-2 px-2.5 text-[12px] text-sidebar-muted">{usuarioNombre}</div>
-          <button
-            onClick={() => cerrarSesion()}
-            className="flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left text-[13px] font-medium text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white"
-          >
-            <LogOut size={15} />
-            Cerrar sesión
-          </button>
-        </div>
-      )}
-    </aside>
+    </>
   );
 }
