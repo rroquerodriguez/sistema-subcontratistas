@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
-import { LayoutGrid, Pencil, Trash2, AlertTriangle, ArrowRightCircle, Download, Upload, CalendarDays, History } from 'lucide-react';
+import { LayoutGrid, Pencil, Trash2, AlertTriangle, ArrowRightCircle, Download, Upload, CalendarDays, History, Plus } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,9 +13,12 @@ import { ProjectFilter } from '@/components/shared/project-filter';
 import { InspectorFilter } from '@/components/shared/inspector-filter';
 import { EstadoLiberacionBadge, EntregaBadge, PrioridadBadge, DiasPill } from '@/components/shared/status-badges';
 import { CollapsibleGroup } from '@/components/shared/collapsible-group';
+import { ResponsiveDialog } from '@/components/shared/responsive-dialog';
+import { TarjetaMovil, TablaOTarjetas } from '@/components/shared/tarjeta-movil';
 import { ExpandCollapseAllButtons } from '@/components/shared/expand-collapse-all-button';
 import { NivelCollapseControls } from '@/components/shared/nivel-collapse-controls';
 import { useCollapseState } from '@/lib/use-collapse-state';
+import { usePersistedState } from '@/lib/use-persisted-state';
 import { SortableTableHead } from '@/components/shared/sortable-table-head';
 import { useSortableFilterableTable, type ColumnConfig } from '@/lib/use-sortable-table';
 import { UnidadSearchBox, unidadMatchesSearch } from '@/components/shared/unidad-search-box';
@@ -58,14 +61,16 @@ interface TallaresTablaProps {
   subName: (id: string) => string;
   validacionDe: (id: string) => Validacion | undefined;
   renderCells: (t: Taller) => ReactNode;
+  renderTarjeta: (t: Taller, showSub: boolean) => ReactNode;
   seleccion?: Set<string>;
   onToggleUno?: (id: string) => void;
   onToggleVisibles?: (ids: string[], seleccionarTodos: boolean) => void;
 }
 
 /** Tabla de talleres con orden/filtro por columna (clic en encabezado + búsqueda por columna),
- * y orden por día como criterio secundario siempre disponible al limpiar el orden manual. */
-function TallaresTabla({ items, showSub, subName, validacionDe, renderCells, seleccion, onToggleUno, onToggleVisibles }: TallaresTablaProps) {
+ * y orden por día como criterio secundario siempre disponible al limpiar el orden manual.
+ * En MÓVIL se muestra como lista de tarjetas en vez de tabla ancha (ver TablaOTarjetas). */
+function TallaresTabla({ items, showSub, subName, validacionDe, renderCells, renderTarjeta, seleccion, onToggleUno, onToggleVisibles }: TallaresTablaProps) {
   const columnas: ColumnConfig<Taller>[] = [
     ...(showSub ? [{ key: 'subcontratista', getValue: (t: Taller) => subName(t.subcontratistaId) }] : []),
     { key: 'proyecto', getValue: (t) => t.proyecto },
@@ -87,8 +92,20 @@ function TallaresTabla({ items, showSub, subName, validacionDe, renderCells, sel
   const todosVisiblesSeleccionados = seleccionActiva && idsVisibles.length > 0 && idsVisibles.every((id) => seleccion!.has(id));
 
   return (
+    <TablaOTarjetas
+      tarjetas={
+        rows.length ? rows.map((t) => (
+          <div key={t.id} className="flex items-start gap-2">
+            {seleccionActiva && (
+              <Checkbox className="mt-4" checked={seleccion!.has(t.id)} onCheckedChange={() => onToggleUno!(t.id)} aria-label="Seleccionar taller" />
+            )}
+            <div className="min-w-0 flex-1">{renderTarjeta(t, showSub)}</div>
+          </div>
+        )) : <div className="py-8 text-center text-sm text-muted-foreground">Sin talleres para mostrar.</div>
+      }
+      tabla={
     <Table>
-      <TableHeader>
+      <TableHeader sticky>
         <TableRow>
           {seleccionActiva && (
             <TableHead className="w-9">
@@ -131,6 +148,8 @@ function TallaresTabla({ items, showSub, subName, validacionDe, renderCells, sel
         )}
       </TableBody>
     </Table>
+      }
+    />
   );
 }
 
@@ -162,18 +181,18 @@ export function PlanificacionSemanal({
   const soloLectura = !puedeEditar(usuario.perfil, 'planificacion');
   const [showMulti, setShowMulti] = useState(false);
   const [editing, setEditing] = useState<Taller | null>(null);
-  const [vista, setVista] = useState<'contratista' | 'global' | 'semanal' | 'personalizada'>('contratista');
+  const [vista, setVista] = usePersistedState<'contratista' | 'global' | 'semanal' | 'personalizada'>('plan-vista', 'contratista');
   const [filtroSub, setFiltroSub] = useState('todos');
-  const [filtroProyecto, setFiltroProyecto] = useState('todos');
+  const [filtroProyecto, setFiltroProyecto] = usePersistedState('plan-filtro-proyecto', 'todos');
   const [filtroDia, setFiltroDia] = useState('todos');
   const [filtroInspector, setFiltroInspector] = useState('todos');
   const [buscadorUnidad, setBuscadorUnidad] = useState('');
-  const [nivelesAgrupacion, setNivelesAgrupacion] = useState<string[]>([]);
+  const [nivelesAgrupacion, setNivelesAgrupacion] = usePersistedState<string[]>('plan-agrupacion', []);
   const [vistaExportar, setVistaExportar] = useState<'tabla' | 'semanal'>('tabla');
   const [periodo, setPeriodo] = useState<'semanal' | 'mensual'>('semanal');
   const [mesActual, setMesActual] = useState(mesKeyActual());
   const [subiendoPlantilla, setSubiendoPlantilla] = useState(false);
-  const [columnasExport, setColumnasExport] = useState<string[]>(COLUMNAS_PLANIFICACION_DEFAULT);
+  const [columnasExport, setColumnasExport] = usePersistedState<string[]>('plan-columnas', COLUMNAS_PLANIFICACION_DEFAULT);
   const [previewPlantilla, setPreviewPlantilla] = useState<{ talleres: Omit<Taller, 'id' | 'semana'>[]; totalFilas: number; erroresFila: { fila: number; motivo: string }[] } | null>(null);
   const [arrastreModal, setArrastreModal] = useState<{ talleres: Taller[]; dias: Record<string, DiaSemana> } | null>(null);
   const [diaMasivoArrastre, setDiaMasivoArrastre] = useState<DiaSemana | ''>('');
@@ -509,6 +528,54 @@ export function PlanificacionSemanal({
     const pctLib = Math.round((liberadosCount / base.length) * 100);
     return `Para ${periodoLabel} hay ${base.length} taller(es) planificado(s) entre ${porContratista} subcontratista(s). De estos, ${liberadosCount} (${pctLib}%) ya están liberados y ${entregadosCount} ya fueron entregados. ${pendientesCount > 0 ? `Quedan ${pendientesCount} taller(es) pendientes de validar — conviene priorizarlos para no acumular atraso.` : 'No hay talleres pendientes de validar en este periodo, lo cual es una buena señal de avance.'}`;
   }, [semanaTalleres, filtroSub, periodoLabel, validaciones, entregas]);
+  const renderTarjeta = (t: Taller, showSub: boolean): ReactNode => {
+    const val = validacionDe(t.id);
+    const ent = entregaDe(t.id);
+    const estado = val?.resultado || 'PENDIENTE';
+    let dias: number | null = null;
+    if (val?.resultado === 'LISTO' && val.fecha) {
+      const hasta = ent?.estado === 'ENTREGADO' && ent.fechaEntrega ? ent.fechaEntrega : todayISO();
+      dias = diffDays(val.fecha, hasta);
+    }
+    const semaforo = ent?.estado === 'ENTREGADO' ? 'verde'
+      : estado === 'NO LISTO' ? 'rojo'
+      : dias !== null && dias > 5 ? 'rojo'
+      : estado === 'LISTO' ? 'ambar'
+      : 'gris';
+
+    return (
+      <TarjetaMovil
+        semaforo={semaforo}
+        titulo={t.esGeneral ? `${t.edificio} · General` : `${t.edificio} ${t.unidad}`}
+        subtitulo={t.actividad || 'Sin actividad'}
+        badges={
+          <>
+            <PrioridadBadge prioridad={t.prioridad} />
+            {!!t.vecesArrastrado && <Badge variant="destructive"><History size={10} className="mr-0.5" />{t.vecesArrastrado}x</Badge>}
+          </>
+        }
+        campos={[
+          ...(showSub ? [{ label: 'Subcontratista', valor: subName(t.subcontratistaId) }] : []),
+          { label: 'Día', valor: diaLabel(t.semana, t.dia) },
+          { label: 'Liberación', valor: <EstadoLiberacionBadge estado={estado} /> },
+          { label: 'Entrega', valor: ent ? <EntregaBadge estado={ent.estado} /> : '—' },
+          { label: 'Técnico', valor: t.tecnico },
+          { label: 'Inspector', valor: t.inspector },
+          { label: 'Fecha promesa', valor: t.fechaPromesa ? fmtDate(t.fechaPromesa) : '—' },
+          { label: 'Días', valor: dias !== null ? <DiasPill dias={dias} entregado={ent?.estado === 'ENTREGADO'} /> : '—' },
+        ]}
+        acciones={
+          !soloLectura && (
+            <>
+              <Button size="sm" variant="outline" onClick={() => setEditing(t)}><Pencil size={13} />Editar</Button>
+              <Button size="sm" variant="outline" className="text-destructive" onClick={() => remove(t.id)}><Trash2 size={13} />Eliminar</Button>
+            </>
+          )
+        }
+      />
+    );
+  };
+
   const renderCells = (t: Taller) => {
     const val = validacionDe(t.id);
     const ent = entregaDe(t.id);
@@ -520,7 +587,21 @@ export function PlanificacionSemanal({
     }
     return (
       <>
-        <TableCell>{t.proyecto}</TableCell>
+        <TableCell>
+          <span className="flex items-center gap-2">
+            <span
+              className={`inline-block h-2 w-2 flex-shrink-0 rounded-full ${
+                ent?.estado === 'ENTREGADO' ? 'bg-emerald-500'
+                : estado === 'NO LISTO' ? 'bg-destructive'
+                : dias !== null && dias > 5 ? 'bg-destructive'
+                : estado === 'LISTO' ? 'bg-amber-500'
+                : 'bg-muted-foreground/30'
+              }`}
+              title={ent?.estado === 'ENTREGADO' ? 'Entregado' : estado === 'NO LISTO' ? 'No liberado' : estado === 'LISTO' ? 'Liberado, pendiente de entrega' : 'Pendiente de validar'}
+            />
+            {t.proyecto}
+          </span>
+        </TableCell>
         <TableCell>{t.edificio}{t.esGeneral && <Badge variant="secondary" className="ml-1.5">General</Badge>}</TableCell>
         <TableCell className="font-medium">{t.esGeneral ? '—' : t.unidad}</TableCell>
         <TableCell title={t.creadoPor ? `Planificado por ${t.creadoPor}${t.creadoEn ? ` · ${fmtDateTime(t.creadoEn)}` : ''}` : ''}>{t.actividad}</TableCell>
@@ -760,13 +841,27 @@ export function PlanificacionSemanal({
                   </div>
                 }
               >
-                <TallaresTabla items={c.items} showSub={false} subName={subName} validacionDe={validacionDe} renderCells={renderCells} seleccion={soloLectura ? undefined : seleccion} onToggleUno={toggleSeleccionUno} onToggleVisibles={toggleSeleccionVisibles} />
+                <TallaresTabla items={c.items} showSub={false} subName={subName} validacionDe={validacionDe} renderCells={renderCells} renderTarjeta={renderTarjeta} seleccion={soloLectura ? undefined : seleccion} onToggleUno={toggleSeleccionUno} onToggleVisibles={toggleSeleccionVisibles} />
               </CollapsibleGroup>
-            )) : <div className="py-10 text-center text-sm text-muted-foreground">No hay talleres planificados para esta semana. Agrega varios a la vez con el botón de arriba.</div>
+            )) : (
+              <div className="py-10 text-center text-sm text-muted-foreground">
+                {(filtroSub !== 'todos' || filtroProyecto !== 'todos' || filtroDia !== 'todos' || filtroInspector !== 'todos' || buscadorUnidad.trim()) ? (
+                  <div className="space-y-2.5">
+                    <div>Ningún taller coincide con los filtros activos.</div>
+                    <Button size="sm" variant="outline" onClick={() => { setFiltroSub('todos'); setFiltroProyecto('todos'); setFiltroDia('todos'); setFiltroInspector('todos'); setBuscadorUnidad(''); }}>Limpiar filtros</Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    <div>No hay talleres planificados para esta semana.</div>
+                    {!soloLectura && <Button size="sm" onClick={() => setShowMulti(true)}><Plus size={13} />Agregar talleres</Button>}
+                  </div>
+                )}
+              </div>
+            )
           )}
 
           {vista === 'global' && (
-            <TallaresTabla items={globalFiltered} showSub subName={subName} validacionDe={validacionDe} renderCells={renderCells} seleccion={soloLectura ? undefined : seleccion} onToggleUno={toggleSeleccionUno} onToggleVisibles={toggleSeleccionVisibles} />
+            <TallaresTabla items={globalFiltered} showSub subName={subName} validacionDe={validacionDe} renderCells={renderCells} renderTarjeta={renderTarjeta} seleccion={soloLectura ? undefined : seleccion} onToggleUno={toggleSeleccionUno} onToggleVisibles={toggleSeleccionVisibles} />
           )}
 
           {vista === 'semanal' && (
@@ -832,7 +927,7 @@ export function PlanificacionSemanal({
               nodos={arbolPersonalizado}
               isCollapsed={colapsoPersonalizada.isCollapsed}
               onToggle={colapsoPersonalizada.toggle}
-              renderHoja={(items) => <TallaresTabla items={items} showSub subName={subName} validacionDe={validacionDe} renderCells={renderCells} seleccion={soloLectura ? undefined : seleccion} onToggleUno={toggleSeleccionUno} onToggleVisibles={toggleSeleccionVisibles} />}
+              renderHoja={(items) => <TallaresTabla items={items} showSub subName={subName} validacionDe={validacionDe} renderCells={renderCells} renderTarjeta={renderTarjeta} seleccion={soloLectura ? undefined : seleccion} onToggleUno={toggleSeleccionUno} onToggleVisibles={toggleSeleccionVisibles} />}
             />
           )}
         </CardContent>
@@ -886,12 +981,9 @@ export function PlanificacionSemanal({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showMulti} onOpenChange={setShowMulti}>
-        <DialogContent className="max-h-[90vh] max-w-[95vw] overflow-y-auto sm:max-w-4xl">
-          <DialogHeader><DialogTitle>Agregar talleres a la planificación</DialogTitle></DialogHeader>
-          <MultiTallerForm subs={subs} catalogo={catalogo} unidadesProyecto={unidadesProyecto} talleresExistentes={talleres} onSaveMany={saveMany} onCancel={() => setShowMulti(false)} />
-        </DialogContent>
-      </Dialog>
+      <ResponsiveDialog open={showMulti} onOpenChange={setShowMulti} title="Agregar talleres a la planificación" desktopClassName="max-w-[95vw] sm:max-w-4xl">
+        <MultiTallerForm subs={subs} catalogo={catalogo} unidadesProyecto={unidadesProyecto} talleresExistentes={talleres} onSaveMany={saveMany} onCancel={() => setShowMulti(false)} />
+      </ResponsiveDialog>
 
       <Dialog open={!!arrastreModal} onOpenChange={(o) => !o && setArrastreModal(null)}>
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
@@ -946,12 +1038,9 @@ export function PlanificacionSemanal({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader><DialogTitle>Editar taller</DialogTitle></DialogHeader>
-          {editing && <TallerForm subs={subs} catalogo={catalogo} unidadesProyecto={unidadesProyecto} calendario={calendario} initial={editing} onSave={saveOne} onCancel={() => setEditing(null)} />}
-        </DialogContent>
-      </Dialog>
+      <ResponsiveDialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)} title="Editar taller">
+        {editing && <TallerForm subs={subs} catalogo={catalogo} unidadesProyecto={unidadesProyecto} calendario={calendario} initial={editing} onSave={saveOne} onCancel={() => setEditing(null)} />}
+      </ResponsiveDialog>
 
       <Dialog open={!!previewPlantilla} onOpenChange={(o) => !o && setPreviewPlantilla(null)}>
         <DialogContent className="max-w-lg">
