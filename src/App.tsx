@@ -15,6 +15,8 @@ import { CatalogoTalleres } from '@/modules/catalogo/catalogo-talleres';
 import { SettingsPage } from '@/modules/settings/settings-page';
 import { dbGet, dbSet, supabase, clavesNoConfiables, onEscrituraBloqueada } from '@/lib/storage';
 import { onFalloGuardado } from '@/lib/persistir';
+import { useTema } from '@/lib/use-tema';
+import { useConexion } from '@/lib/use-conexion';
 import { cargarSesionActual, modulosVisibles, listarPerfiles, type SesionUsuario } from '@/lib/auth';
 import { UsuarioActualContext } from '@/lib/usuario-actual-context';
 import { SEED_SUBCONTRATISTAS } from '@/lib/seed-data';
@@ -42,6 +44,8 @@ const nombreClave = (k: string) => NOMBRE_CLAVE[k] || k;
 
 function App() {
   const [loaded, setLoaded] = useState(false);
+  const { tema, setTema } = useTema();
+  const enLinea = useConexion();
   const [sesion, setSesion] = useState<SesionUsuario | null>(null);
   const [verificandoSesion, setVerificandoSesion] = useState(true);
   const [tab, setTab] = useState<TabId>('dashboard');
@@ -203,8 +207,14 @@ function App() {
     }}>
     <div className="flex min-h-screen flex-col bg-background md:flex-row">
       <Sidebar tab={tabActiva} onChange={setTab} tabsVisibles={tabsVisibles} usuarioNombre={perfil.nombre} />
-      <main className="flex-1 overflow-x-hidden p-4 md:p-6">
+      <main className="flex-1 overflow-x-hidden p-4 pb-[calc(64px+env(safe-area-inset-bottom))] md:p-6 md:pb-6">
         <div className="mx-auto max-w-[1800px]">
+          {!enLinea && (
+            <div className="no-print mb-4 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-[13px] leading-relaxed">
+              <strong>Sin conexión a internet.</strong> Los cambios que hagas ahora <strong>no se guardarán</strong> hasta que
+              se restablezca la señal. Evita capturar información importante hasta reconectarte.
+            </div>
+          )}
           {clavesFallidas.length > 0 && (
             <div className="no-print mb-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3">
               <div className="flex flex-wrap items-center justify-between gap-2.5">
@@ -233,6 +243,7 @@ function App() {
               unidadesProyecto={unidadesProyecto} setUnidadesProyecto={setUnidadesProyecto}
               archivoMeta={archivoMeta} setArchivoMeta={setArchivoMeta}
               calendario={calendario} setCalendario={setCalendario}
+              tema={tema} setTema={setTema}
               onRestored={cargarTodo} showToast={showToast} miPerfil={perfil}
             />
           )}
