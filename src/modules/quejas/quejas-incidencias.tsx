@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { SubAvatar } from '@/components/shared/sub-avatar';
 import { PhotoViewer } from '@/components/shared/photo-viewer';
 import { ProjectFilter } from '@/components/shared/project-filter';
 import { CollapsibleGroup } from '@/components/shared/collapsible-group';
+import { ResponsiveDialog } from '@/components/shared/responsive-dialog';
 import { ExpandCollapseAllButtons } from '@/components/shared/expand-collapse-all-button';
 import { NivelCollapseControls } from '@/components/shared/nivel-collapse-controls';
 import { useCollapseState } from '@/lib/use-collapse-state';
@@ -60,7 +60,7 @@ function IncidenciasTabla({ list, onEdit, onRemove, onViewPhotos, soloLectura }:
 
   return (
     <Table>
-      <TableHeader>
+      <TableHeader sticky>
         <TableRow>
           <SortableTableHead label="Fecha" columnKey="fecha" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterable={false} />
           <SortableTableHead label="Tipo" columnKey="tipo" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.tipo} onFilterChange={setFilter} />
@@ -235,19 +235,13 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
         </CardContent>
       </Card>
 
-      <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader><DialogTitle>Nueva incidencia</DialogTitle></DialogHeader>
-          <QuejaForm subs={subs} talleres={talleres} validaciones={validaciones} entregas={entregas} preselectSub={filtroSub !== 'todos' ? filtroSub : undefined} onSave={save} onCancel={() => setShowNew(false)} />
-        </DialogContent>
-      </Dialog>
+      <ResponsiveDialog open={showNew} onOpenChange={setShowNew} title="Nueva incidencia">
+        <QuejaForm subs={subs} talleres={talleres} validaciones={validaciones} entregas={entregas} preselectSub={filtroSub !== 'todos' ? filtroSub : undefined} onSave={save} onCancel={() => setShowNew(false)} />
+      </ResponsiveDialog>
 
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader><DialogTitle>Editar incidencia</DialogTitle></DialogHeader>
-          {editing && <QuejaForm subs={subs} talleres={talleres} validaciones={validaciones} entregas={entregas} initial={editing} onSave={save} onCancel={() => setEditing(null)} />}
-        </DialogContent>
-      </Dialog>
+      <ResponsiveDialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)} title="Editar incidencia">
+        {editing && <QuejaForm subs={subs} talleres={talleres} validaciones={validaciones} entregas={entregas} initial={editing} onSave={save} onCancel={() => setEditing(null)} />}
+      </ResponsiveDialog>
 
       <PhotoViewer photos={viewPhotos} onClose={() => setViewPhotos(null)} title="Fotos / capturas" />
     </div>
