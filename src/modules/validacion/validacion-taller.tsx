@@ -91,7 +91,7 @@ function LiberacionTabla({ filas, showSub, subName, onGestionar }: LiberacionTab
 
   return (
     <Table>
-      <TableHeader>
+      <TableHeader sticky>
         <TableRow>
           {showSub && <SortableTableHead label="Subcontratista" columnKey="subcontratista" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.subcontratista} onFilterChange={setFilter} />}
           <SortableTableHead label="Unidad" columnKey="unidad" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.unidad} onFilterChange={setFilter} />
