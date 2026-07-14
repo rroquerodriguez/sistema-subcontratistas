@@ -71,7 +71,7 @@ export function Sidebar({ tab, onChange, tabsVisibles, usuarioNombre }: SidebarP
                 key={t.id}
                 onClick={() => onChange(t.id)}
                 className={cn(
-                  'flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] font-medium transition-colors',
+                  'btn-press flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] font-medium',
                   active ? 'bg-sidebar-active text-white' : 'text-sidebar-muted hover:bg-sidebar-hover hover:text-white'
                 )}
               >
@@ -86,7 +86,7 @@ export function Sidebar({ tab, onChange, tabsVisibles, usuarioNombre }: SidebarP
             <div className="mb-2 px-2.5 text-[12px] text-sidebar-muted">{usuarioNombre}</div>
             <button
               onClick={() => cerrarSesion()}
-              className="flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left text-[13px] font-medium text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white"
+              className="btn-press flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left text-[13px] font-medium text-sidebar-muted hover:bg-sidebar-hover hover:text-white"
             >
               <LogOut size={15} />
               Cerrar sesión
@@ -105,7 +105,7 @@ export function Sidebar({ tab, onChange, tabsVisibles, usuarioNombre }: SidebarP
           <button
             onClick={() => cerrarSesion()}
             title={`Cerrar sesión (${usuarioNombre})`}
-            className="flex items-center gap-1.5 rounded-[10px] border border-white/15 px-2.5 py-1.5 text-[12px] font-medium text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white"
+            className="btn-press flex items-center gap-1.5 rounded-[10px] border border-white/15 px-2.5 py-1.5 text-[12px] font-medium text-sidebar-muted hover:bg-sidebar-hover hover:text-white"
           >
             <LogOut size={14} />
             {usuarioNombre.split(' ')[0]}
@@ -123,7 +123,7 @@ export function Sidebar({ tab, onChange, tabsVisibles, usuarioNombre }: SidebarP
               key={t.id}
               onClick={() => onChange(t.id)}
               className={cn(
-                'relative flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10.5px] font-medium transition-colors',
+                'btn-press relative flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10.5px] font-medium',
                 active ? 'text-white' : 'text-sidebar-muted'
               )}
             >
@@ -138,7 +138,7 @@ export function Sidebar({ tab, onChange, tabsVisibles, usuarioNombre }: SidebarP
             <SheetTrigger asChild>
               <button
                 className={cn(
-                  'relative flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10.5px] font-medium transition-colors',
+                  'btn-press relative flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10.5px] font-medium',
                   activoEnResto ? 'text-white' : 'text-sidebar-muted'
                 )}
               >
@@ -160,7 +160,7 @@ export function Sidebar({ tab, onChange, tabsVisibles, usuarioNombre }: SidebarP
                       key={t.id}
                       onClick={() => irA(t.id)}
                       className={cn(
-                        'flex min-h-[52px] items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left text-[13px] font-medium transition-colors',
+                        'btn-press flex min-h-[52px] items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left text-[13px] font-medium',
                         active ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted/60'
                       )}
                     >
