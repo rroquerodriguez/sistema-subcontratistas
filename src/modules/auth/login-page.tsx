@@ -33,8 +33,8 @@ export function LoginPage() {
             <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Building2 size={24} />
             </div>
-            <div className="text-[17px] font-semibold">Control de obra</div>
-            <div className="text-[12px] text-muted-foreground">Panorama Park · Garden</div>
+            <div className="text-title font-semibold">Control de obra</div>
+            <div className="text-caption text-muted-foreground">Panorama Park · Garden</div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-3.5">
@@ -48,7 +48,7 @@ export function LoginPage() {
             </div>
 
             {error && (
-              <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-[12.5px] text-destructive">
+              <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-caption text-destructive">
                 {error}
               </div>
             )}
@@ -58,7 +58,7 @@ export function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-5 text-center text-[11.5px] text-muted-foreground">
+          <div className="mt-5 text-center text-caption text-muted-foreground">
             ¿No tienes cuenta? Pídele al administrador del sistema que te cree una.
           </div>
         </CardContent>
