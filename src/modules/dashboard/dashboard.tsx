@@ -104,8 +104,8 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
               <ProjectFilter value={filtroProyecto} onChange={setFiltroProyecto} />
             </div>
           </div>
-          <div className="mb-1 text-[13px] font-medium text-primary">Resumen — {periodoLabel}</div>
-          <div className="text-[13.5px] leading-relaxed">{parrafoAnalisis}</div>
+          <div className="mb-1 text-body font-medium text-primary">Resumen — {periodoLabel}</div>
+          <div className="text-body leading-relaxed">{parrafoAnalisis}</div>
         </CardContent>
       </Card>
 
@@ -118,8 +118,8 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
 
       <Card>
         <CardContent className="p-5">
-          <div className="mb-1 text-[15.5px] font-medium">Cumplimiento por responsabilidad</div>
-          <div className="mb-3 text-[12px] text-muted-foreground">
+          <div className="mb-1 text-title font-medium">Cumplimiento por responsabilidad</div>
+          <div className="mb-3 text-caption text-muted-foreground">
             De las entregas del periodo: separa lo que depende de nosotros (liberar la unidad a tiempo) de lo que depende del contratista (ejecutar dentro del estándar), y el cumplimiento final ante el cliente.
           </div>
           <ResponsabilidadPanel resumen={resumenResp} />
@@ -129,7 +129,7 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardContent className="p-5">
-            <div className="mb-3 text-[15.5px] font-medium">Atención requerida</div>
+            <div className="mb-3 text-title font-medium">Atención requerida</div>
             {!hayAtencion ? (
               <div className="py-10 text-center text-sm text-muted-foreground">Todo en orden en este periodo. No hay pendientes urgentes.</div>
             ) : (
@@ -138,7 +138,7 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
                   const dias = diasAtrasoFechaPrometida(fp);
                   return (
                     <div key={fp.id} className="flex items-center justify-between border-b border-border py-2 last:border-0">
-                      <div className="text-[13px]">
+                      <div className="text-body">
                         <span className="font-medium">{subName(fp.subcontratistaId)}</span> — {fp.descripcion}: <Badge variant="destructive">atrasada{dias ? ` ${dias}d` : ''}</Badge>
                       </div>
                       <Button size="sm" variant="secondary" onClick={() => goTo('fechas')}>Ver</Button>
@@ -147,7 +147,7 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
                 })}
                 {fechasProximas.slice(0, 2).map((fp) => (
                   <div key={fp.id} className="flex items-center justify-between border-b border-border py-2 last:border-0">
-                    <div className="text-[13px]">
+                    <div className="text-body">
                       <span className="font-medium">{subName(fp.subcontratistaId)}</span> — {fp.descripcion}: prometida para {fmtDate(fp.fechaPrometidaActual)}
                     </div>
                     <Button size="sm" variant="secondary" onClick={() => goTo('fechas')}>Ver</Button>
@@ -155,7 +155,7 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
                 ))}
                 {atrasados.slice(0, 4).map((t) => (
                   <div key={t.id} className="flex items-center justify-between border-b border-border py-2 last:border-0">
-                    <div className="text-[13px]">
+                    <div className="text-body">
                       <span className="font-medium">{subName(t.subcontratistaId)}</span> — {t.edificio} {t.unidad}: atrasado de semana del {weekRangeLabel(t.semana)}
                     </div>
                     <Button size="sm" variant="secondary" onClick={() => goTo('planificacion')}>Mover</Button>
@@ -163,7 +163,7 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
                 ))}
                 {sinEntregarUrgente.slice(0, 4).map((d) => (
                   <div key={d.taller.id} className="flex items-center justify-between border-b border-border py-2 last:border-0">
-                    <div className="text-[13px]">
+                    <div className="text-body">
                       <span className="font-medium">{subName(d.taller.subcontratistaId)}</span> — {d.taller.edificio} {d.taller.unidad}: {d.dias} días liberado sin entrega
                     </div>
                     <Button size="sm" variant="secondary" onClick={() => goTo('validacion')}>Ver</Button>
@@ -171,7 +171,7 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
                 ))}
                 {noLiberadoActual.slice(0, 4).map((t) => (
                   <div key={t.id} className="flex items-center justify-between border-b border-border py-2 last:border-0">
-                    <div className="text-[13px]">
+                    <div className="text-body">
                       <span className="font-medium">{subName(t.subcontratistaId)}</span> — {t.edificio} {t.unidad}: no liberado
                     </div>
                     <Button size="sm" variant="secondary" onClick={() => goTo('validacion')}>Resolver</Button>
@@ -179,7 +179,7 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
                 ))}
                 {pendientesActual.slice(0, 4).map((t) => (
                   <div key={t.id} className="flex items-center justify-between border-b border-border py-2 last:border-0">
-                    <div className="text-[13px]">
+                    <div className="text-body">
                       <span className="font-medium">{subName(t.subcontratistaId)}</span> — {t.edificio} {t.unidad}: validación pendiente
                     </div>
                     <Button size="sm" variant="secondary" onClick={() => goTo('validacion')}>Validar</Button>
@@ -193,7 +193,7 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
         <Card>
           <CardContent className="p-5">
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-[15.5px] font-medium">Cumplimiento por subcontratista</span>
+              <span className="text-title font-medium">Cumplimiento por subcontratista</span>
               <Button size="sm" variant="outline" onClick={() => goTo('evaluacion')}>Ver evaluación</Button>
             </div>
             {perSub.length === 0 ? (
@@ -204,7 +204,7 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
                   <div key={sub.id} className="flex items-center gap-2.5 border-b border-border py-2.5 last:border-0">
                     <SubAvatar name={sub.nombre} id={sub.id} />
                     <div className="min-w-0 flex-1">
-                      <div className="text-[13px] font-medium">{sub.nombre}</div>
+                      <div className="text-body font-medium">{sub.nombre}</div>
                       <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
                         <div
                           className="h-full rounded-full transition-[width] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]"
@@ -215,7 +215,7 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
                         />
                       </div>
                     </div>
-                    <div className="w-10 text-right text-[13px] font-medium">{s.pctCumplimiento}%</div>
+                    <div className="w-10 text-right text-body font-medium">{s.pctCumplimiento}%</div>
                   </div>
                 ))}
               </div>
@@ -228,7 +228,7 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
         <Card>
           <CardContent className="p-5">
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-[15.5px] font-medium">Incidencias del periodo ({quejasDelPeriodo.length})</span>
+              <span className="text-title font-medium">Incidencias del periodo ({quejasDelPeriodo.length})</span>
               <Button size="sm" variant="outline" onClick={() => goTo('quejas')}>Ver todas</Button>
             </div>
             {quejasDelPeriodo.length === 0 ? (
@@ -236,10 +236,10 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
             ) : (
               <div className="space-y-1.5">
                 {quejasDelPeriodo.slice(0, 6).map((q) => (
-                  <div key={q.id} className="rounded-md border border-border/70 bg-muted/30 px-2.5 py-1.5 text-[12px]">
+                  <div key={q.id} className="rounded-md border border-border/70 bg-muted/30 px-2.5 py-1.5 text-caption">
                     <div className="mb-0.5 flex items-center justify-between gap-2">
                       <span className="font-medium">{subName(q.subcontratistaId)} — {q.tipo}</span>
-                      <span className="text-[11px] text-muted-foreground">{fmtDate(q.fecha)}</span>
+                      <span className="text-micro text-muted-foreground">{fmtDate(q.fecha)}</span>
                     </div>
                     {q.descripcion && <div className="text-muted-foreground">{q.descripcion}</div>}
                   </div>
@@ -252,7 +252,7 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
         <Card>
           <CardContent className="p-5">
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-[15.5px] font-medium">Fechas prometidas vigentes</span>
+              <span className="text-title font-medium">Fechas prometidas vigentes</span>
               <Button size="sm" variant="outline" onClick={() => goTo('fechas')}>Ver todas</Button>
             </div>
             {fechasAtrasadas.length === 0 && fechasProximas.length === 0 ? (
@@ -262,7 +262,7 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
                 {fechasAtrasadas.slice(0, 4).map((fp) => {
                   const dias = diasAtrasoFechaPrometida(fp);
                   return (
-                    <div key={fp.id} className="rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-1.5 text-[12px]">
+                    <div key={fp.id} className="rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-1.5 text-caption">
                       <div className="mb-0.5 flex items-center justify-between gap-2">
                         <span className="font-medium">{subName(fp.subcontratistaId)}</span>
                         <Badge variant="destructive">atrasada {dias ? `${dias}d` : ''}</Badge>
@@ -272,7 +272,7 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
                   );
                 })}
                 {fechasProximas.slice(0, 4).map((fp) => (
-                  <div key={fp.id} className="rounded-md border border-warning/30 bg-warning/5 px-2.5 py-1.5 text-[12px]">
+                  <div key={fp.id} className="rounded-md border border-warning/30 bg-warning/5 px-2.5 py-1.5 text-caption">
                     <div className="mb-0.5 flex items-center justify-between gap-2">
                       <span className="font-medium">{subName(fp.subcontratistaId)}</span>
                       <Badge variant="warning">prometida {fmtDate(fp.fechaPrometidaActual)}</Badge>
