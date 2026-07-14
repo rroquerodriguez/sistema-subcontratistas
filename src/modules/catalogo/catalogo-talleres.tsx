@@ -56,7 +56,7 @@ function CatalogoTabla({ items, onEdit, onRemove, soloLectura }: { items: Taller
         {rows.map((c) => (
           <TableRow key={c.id}>
             <TableCell className="font-medium">{c.actividad}</TableCell>
-            <TableCell className="whitespace-nowrap text-[12.5px]">
+            <TableCell className="whitespace-nowrap text-caption">
               {c.duracionEstandarDias != null ? (
                 <span>
                   {c.duracionEstandarDias} día{c.duracionEstandarDias === 1 ? '' : 's'}
@@ -190,8 +190,8 @@ export function CatalogoTalleres({ subs, catalogo, setCatalogo, calendario, show
     <div>
       <Card>
         <CardContent className="p-5">
-          <div className="mb-1 text-[17px] font-semibold">Catálogo de talleres</div>
-          <div className="mb-4 text-[12px] text-muted-foreground">
+          <div className="mb-1 text-title font-semibold">Catálogo de talleres</div>
+          <div className="mb-4 text-caption text-muted-foreground">
             Define las actividades típicas de cada subcontratista. Estas aparecerán como opciones sugeridas al planificar talleres, además de poder escribir una actividad nueva en el momento (que se agrega automáticamente aquí).
           </div>
 
@@ -287,18 +287,18 @@ export function CatalogoTalleres({ subs, catalogo, setCatalogo, calendario, show
               <Textarea rows={2} value={notas} onChange={(e) => setNotas(e.target.value)} />
             </div>
             <div className="rounded-md border border-border bg-muted/20 p-3">
-              <div className="mb-2 text-[12.5px] font-medium">Estándar de tiempo (opcional)</div>
+              <div className="mb-2 text-caption font-medium">Estándar de tiempo (opcional)</div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-[12.5px]">Duración estándar (días laborables)</Label>
+                  <Label className="text-caption">Duración estándar (días laborables)</Label>
                   <Input type="number" min={0} value={duracionEstandar} onChange={(e) => setDuracionEstandar(e.target.value)} placeholder="Ej: 3" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[12.5px]">Holgura (días, opcional)</Label>
+                  <Label className="text-caption">Holgura (días, opcional)</Label>
                   <Input type="number" min={0} value={holgura} onChange={(e) => setHolgura(e.target.value)} placeholder="0" disabled={duracionEstandar.trim() === ''} />
                 </div>
               </div>
-              <p className="mt-1.5 text-[11px] text-muted-foreground">
+              <p className="mt-1.5 text-micro text-muted-foreground">
                 Días laborables ({resumenDiasLaborables(calendario)}) que debería tomar la actividad desde que se libera la unidad. Déjalo vacío si aún no lo defines.
               </p>
             </div>
@@ -315,12 +315,12 @@ export function CatalogoTalleres({ subs, catalogo, setCatalogo, calendario, show
           <DialogHeader><DialogTitle>Confirmar importación de plantilla</DialogTitle></DialogHeader>
           {previewPlantilla && (
             <div className="space-y-3">
-              <div className="rounded-md bg-muted/40 p-3 text-[13px]">
+              <div className="rounded-md bg-muted/40 p-3 text-body">
                 Se detectaron <strong>{previewPlantilla.totalFilas}</strong> fila(s) en el archivo, de las cuales <strong>{previewPlantilla.actividades.length}</strong> se importarán al catálogo.
                 {previewPlantilla.duplicadas > 0 && <> Se omitieron <strong>{previewPlantilla.duplicadas}</strong> por ya existir.</>}
               </div>
               {previewPlantilla.erroresFila.length > 0 && (
-                <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-[12.5px]">
+                <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-caption">
                   <div className="mb-1 flex items-center gap-1.5 font-medium text-destructive"><AlertTriangle size={14} />Filas con errores (no se importarán)</div>
                   <ul className="max-h-[140px] list-disc space-y-0.5 overflow-y-auto pl-4">
                     {previewPlantilla.erroresFila.map((e, i) => <li key={i}>Fila {e.fila}: {e.motivo}</li>)}

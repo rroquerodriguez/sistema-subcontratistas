@@ -44,32 +44,32 @@ export function MultiActividadForm({ subs, preselectSub, onSaveMany, onCancel }:
 
   return (
     <div>
-      <div className="mb-3 text-[12.5px] text-muted-foreground">
+      <div className="mb-3 text-caption text-muted-foreground">
         Completa las filas que necesites. Cada fila con subcontratista y nombre de actividad se guardará como una entrada independiente del catálogo.
       </div>
       <div className="space-y-2.5">
         {rows.map((r, idx) => (
           <div key={r.rowId} className="rounded-lg border border-border p-3">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Actividad #{idx + 1}</span>
+              <span className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">Actividad #{idx + 1}</span>
               <Button size="icon" variant="outline" className="h-7 w-7 flex-shrink-0 text-destructive" onClick={() => removeRow(r.rowId)} aria-label="Quitar fila">
                 <X size={13} />
               </Button>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <div className="space-y-1">
-                <label className="text-[10.5px] font-medium text-muted-foreground">Subcontratista</label>
+                <label className="text-micro font-medium text-muted-foreground">Subcontratista</label>
                 <Select value={r.subcontratistaId} onValueChange={(v) => updRow(r.rowId, 'subcontratistaId', v)}>
                   <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                   <SelectContent>{subs.map((s) => <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10.5px] font-medium text-muted-foreground">Nombre de la actividad</label>
+                <label className="text-micro font-medium text-muted-foreground">Nombre de la actividad</label>
                 <Input className="h-9 text-xs" placeholder="Ej: Instalación de ventanas" value={r.actividad} onChange={(e) => updRow(r.rowId, 'actividad', e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-[10.5px] font-medium text-muted-foreground">Notas (opcional)</label>
+                <label className="text-micro font-medium text-muted-foreground">Notas (opcional)</label>
                 <Input className="h-9 text-xs" placeholder="Notas" value={r.notas} onChange={(e) => updRow(r.rowId, 'notas', e.target.value)} />
               </div>
             </div>

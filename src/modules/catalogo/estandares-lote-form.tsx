@@ -56,7 +56,7 @@ export function EstandaresLoteForm({ subs, catalogo, calendario, onGuardar, onCa
 
   return (
     <div className="space-y-3">
-      <p className="text-[12.5px] leading-relaxed text-muted-foreground">
+      <p className="text-caption leading-relaxed text-muted-foreground">
         Asigna la duración estándar (en días laborables: {resumenDiasLaborables(calendario)}) que debería tomar cada
         actividad desde que se libera la unidad. Deja en blanco las que aún no quieras definir. La holgura es un colchón
         opcional sobre el estándar.
@@ -83,10 +83,10 @@ export function EstandaresLoteForm({ subs, catalogo, calendario, onGuardar, onCa
           <TableBody>
             {visibles.map((c) => (
               <TableRow key={c.id}>
-                <TableCell className="whitespace-nowrap text-[12.5px]">
+                <TableCell className="whitespace-nowrap text-caption">
                   <span className="flex items-center gap-1.5"><SubAvatar name={subName(c.subcontratistaId)} id={c.subcontratistaId} />{subName(c.subcontratistaId)}</span>
                 </TableCell>
-                <TableCell className="text-[13px] font-medium">{c.actividad}</TableCell>
+                <TableCell className="text-body font-medium">{c.actividad}</TableCell>
                 <TableCell>
                   <Input type="number" min={0} className="h-8" value={ediciones[c.id]?.duracion ?? ''} onChange={(e) => set(c.id, 'duracion', e.target.value)} placeholder="—" />
                 </TableCell>
