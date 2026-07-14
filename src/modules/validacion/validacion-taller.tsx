@@ -112,7 +112,7 @@ function LiberacionTabla({ filas, showSub, subName, onGestionar }: LiberacionTab
             <TableCell><EstadoLiberacionBadge estado={f.v.resultado} /></TableCell>
             <TableCell>{f.ent ? <EntregaBadge estado={f.ent.estado} /> : '—'}</TableCell>
             <TableCell><DiasPill dias={f.dias} entregado={f.ent?.estado === 'ENTREGADO'} /></TableCell>
-            <TableCell className="text-[11.5px] text-muted-foreground">{nombrePorId(f.v.registradoPorId)}</TableCell>
+            <TableCell className="text-caption text-muted-foreground">{nombrePorId(f.v.registradoPorId)}</TableCell>
             <TableCell>
               <Button size="sm" variant="secondary" onClick={() => onGestionar(f)}>Gestionar</Button>
             </TableCell>
@@ -248,8 +248,8 @@ export function ValidacionTaller({
     <div>
       <Card>
         <CardContent className="p-5">
-          <div className="mb-1 text-[17px] font-semibold">Liberación y entrega</div>
-          <div className="mb-4 text-[12px] text-muted-foreground">Semana del {weekRangeLabel(semanaActual)} — gestiona la liberación del área para trabajar y la entrega del trabajo por el subcontratista.</div>
+          <div className="mb-1 text-title font-semibold">Liberación y entrega</div>
+          <div className="mb-4 text-caption text-muted-foreground">Semana del {weekRangeLabel(semanaActual)} — gestiona la liberación del área para trabajar y la entrega del trabajo por el subcontratista.</div>
 
           <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2.5">
             <div className="flex flex-wrap items-center gap-1.5">

@@ -33,7 +33,7 @@ export function EntregaEditForm({ entrega, taller, sub, validacion, onSave, onCa
 
   return (
     <div>
-      <div className="mb-4 rounded-xl bg-success/10 p-3 text-[12.5px]">
+      <div className="mb-4 rounded-xl bg-success/10 p-3 text-caption">
         <strong>{sub?.nombre}</strong> — {taller.edificio} {taller.unidad} — {taller.actividad}
         <br />
         Liberado el {validacion?.fecha ? validacion.fecha.split('-').reverse().join('/') : '—'}
@@ -62,7 +62,7 @@ export function EntregaEditForm({ entrega, taller, sub, validacion, onSave, onCa
 
       {diasActuales !== null && (
         <div className="mb-4 flex items-center gap-2">
-          <span className="text-[13px] text-muted-foreground">Días transcurridos desde la liberación:</span>
+          <span className="text-body text-muted-foreground">Días transcurridos desde la liberación:</span>
           <DiasPill dias={diasActuales} entregado={f.estado === 'ENTREGADO'} />
         </div>
       )}
@@ -89,7 +89,7 @@ export function EntregaEditForm({ entrega, taller, sub, validacion, onSave, onCa
       </div>
 
       {soloLectura && (
-        <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[12.5px] text-amber-800">
+        <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-caption text-amber-800">
           Tienes acceso de solo lectura a este módulo. Puedes ver la información, pero no guardar cambios.
         </div>
       )}

@@ -60,7 +60,7 @@ export function ValidacionEditForm({ validacion, taller, sub, unidadesProyecto, 
       <div className="mb-4 rounded-xl bg-muted/40 px-4 py-1">
         {CHECKLIST_ITEMS.map((item, i) => (
           <div key={i} className="flex items-center justify-between gap-2 border-b border-border py-2.5 last:border-0">
-            <span className="text-[13px]">{item}</span>
+            <span className="text-body">{item}</span>
             <div className="flex gap-1">
               {(['SI', 'NO', 'N/A'] as ChecklistValue[]).map((opt) => (
                 <Button key={opt} type="button" size="sm" variant={f.checklist[i] === opt ? (opt === 'SI' ? 'default' : opt === 'NO' ? 'destructive' : 'secondary') : 'outline'} onClick={() => setCheck(i, opt)}>
@@ -94,7 +94,7 @@ export function ValidacionEditForm({ validacion, taller, sub, unidadesProyecto, 
       </div>
 
       {soloLectura && (
-        <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[12.5px] text-amber-800">
+        <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-caption text-amber-800">
           Tienes acceso de solo lectura a este módulo. Puedes ver la información, pero no guardar cambios.
         </div>
       )}
