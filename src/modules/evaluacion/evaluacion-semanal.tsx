@@ -109,8 +109,8 @@ export function EvaluacionSemanal({ subs, talleres: talleresTodos, validaciones,
     <div>
       <Card>
         <CardContent className="p-5">
-          <div className="mb-1 text-[17px] font-semibold">Evaluación</div>
-          <div className="mb-4 text-[12px] text-muted-foreground">Resultados de cumplimiento por subcontratista, por semana o por mes. "Liberado para trabajar" significa que el área quedó lista para que el subcontratista pueda iniciar.</div>
+          <div className="mb-1 text-title font-semibold">Evaluación</div>
+          <div className="mb-4 text-caption text-muted-foreground">Resultados de cumplimiento por subcontratista, por semana o por mes. "Liberado para trabajar" significa que el área quedó lista para que el subcontratista pueda iniciar.</div>
 
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2.5">
             <div className="flex flex-wrap items-center gap-2.5">
@@ -160,31 +160,31 @@ export function EvaluacionSemanal({ subs, talleres: talleresTodos, validaciones,
           </div>
 
           <div className="mb-5">
-            <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-primary">Cumplimiento por responsabilidad</div>
+            <div className="mb-2 text-micro font-bold uppercase tracking-wider text-primary">Cumplimiento por responsabilidad</div>
             <ResponsabilidadPanel resumen={resumenResp} />
           </div>
 
           {subFiltro && (
             <>
               <div className="mb-5">
-                <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-primary">Resumen del periodo</div>
-                <div className="rounded-xl bg-muted/30 px-4 py-3 text-[12.5px] leading-relaxed">
+                <div className="mb-2 text-micro font-bold uppercase tracking-wider text-primary">Resumen del periodo</div>
+                <div className="rounded-xl bg-muted/30 px-4 py-3 text-caption leading-relaxed">
                   {parrafoAnalisis}
                 </div>
               </div>
 
               <div className="mb-5">
-                <div className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-primary">
+                <div className="mb-2 flex items-center gap-1.5 text-micro font-bold uppercase tracking-wider text-primary">
                   <ClipboardList size={13} />Evaluación detallada
                 </div>
                 <div className="rounded-xl border-l-4 border-primary bg-primary/5 p-4">
-                  <BulletList items={narrativa} className="text-[13px] leading-relaxed" />
+                  <BulletList items={narrativa} className="text-body leading-relaxed" />
                 </div>
               </div>
 
               {historialIncidencias.length > 0 && (
                 <div className="mb-5">
-                  <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-destructive">Incidencias</div>
+                  <div className="mb-2 text-micro font-bold uppercase tracking-wider text-destructive">Incidencias</div>
                   <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4">
                     <HistorialIncidenciasContratista quejas={historialIncidencias} onViewPhotos={setViewPhotos} />
                   </div>
@@ -193,7 +193,7 @@ export function EvaluacionSemanal({ subs, talleres: talleresTodos, validaciones,
 
               {fechasContratista.length > 0 && (
                 <div className="mb-5">
-                  <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-warning">Fechas prometidas</div>
+                  <div className="mb-2 text-micro font-bold uppercase tracking-wider text-warning">Fechas prometidas</div>
                   <div className="rounded-xl border border-warning/20 bg-warning/5 p-4">
                     <FechasPrometidasContratista fechas={fechasContratista} />
                   </div>
@@ -201,7 +201,7 @@ export function EvaluacionSemanal({ subs, talleres: talleresTodos, validaciones,
               )}
 
               <div className="mb-2 border-t-2 border-border pt-4">
-                <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-foreground">Detalle de talleres</div>
+                <div className="mb-2 text-micro font-bold uppercase tracking-wider text-foreground">Detalle de talleres</div>
               </div>
               <TallerDetailTable detailList={detailList} subs={subs} />
             </>
@@ -223,11 +223,11 @@ export function EvaluacionSemanal({ subs, talleres: talleresTodos, validaciones,
                           <div className="flex items-center gap-2.5">
                             <SubAvatar name={sub.nombre} id={sub.id} />
                             <div>
-                              <div className="text-[14px] font-semibold">{sub.nombre}</div>
-                              <div className="text-[11px] text-muted-foreground">{sub.especialidad}</div>
+                              <div className="text-base font-semibold">{sub.nombre}</div>
+                              <div className="text-micro text-muted-foreground">{sub.especialidad}</div>
                             </div>
                           </div>
-                          <div className="flex flex-wrap items-center gap-3 text-[12px]">
+                          <div className="flex flex-wrap items-center gap-3 text-caption">
                             <span>Talleres: <strong>{gStats.totalTalleres}</strong></span>
                             <span>% liberado para trabajar: <strong className={gStats.pctLiberado >= 90 ? 'text-success' : gStats.pctLiberado >= 70 ? 'text-warning' : 'text-destructive'}>{gStats.pctLiberado}%</strong></span>
                             <span>% cumplimiento: <strong className={gStats.pctCumplimiento >= 90 ? 'text-success' : gStats.pctCumplimiento >= 70 ? 'text-warning' : 'text-destructive'}>{gStats.pctCumplimiento}%</strong></span>
@@ -242,22 +242,22 @@ export function EvaluacionSemanal({ subs, talleres: talleresTodos, validaciones,
                     >
                     <div className="p-4">
                       <div className="mb-4">
-                        <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-wider text-primary">Resumen del periodo</div>
-                        <div className="rounded-lg bg-muted/30 px-3 py-2 text-[12.5px] leading-relaxed">
+                        <div className="mb-1.5 text-micro font-bold uppercase tracking-wider text-primary">Resumen del periodo</div>
+                        <div className="rounded-lg bg-muted/30 px-3 py-2 text-caption leading-relaxed">
                           {gParrafo}
                         </div>
                       </div>
                       <div className="mb-4">
-                        <div className="mb-1.5 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider text-primary">
+                        <div className="mb-1.5 flex items-center gap-1.5 text-micro font-bold uppercase tracking-wider text-primary">
                           <ClipboardList size={12} />Evaluación detallada
                         </div>
                         <div className="rounded-lg border-l-4 border-primary bg-primary/5 px-3 py-2">
-                          <BulletList items={gNarrativa} className="text-[12.5px] leading-relaxed" />
+                          <BulletList items={gNarrativa} className="text-caption leading-relaxed" />
                         </div>
                       </div>
                       {gHistorial.length > 0 && (
                         <div className="mb-4">
-                          <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-wider text-destructive">Incidencias</div>
+                          <div className="mb-1.5 text-micro font-bold uppercase tracking-wider text-destructive">Incidencias</div>
                           <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2">
                             <HistorialIncidenciasContratista quejas={gHistorial} onViewPhotos={setViewPhotos} />
                           </div>
@@ -265,14 +265,14 @@ export function EvaluacionSemanal({ subs, talleres: talleresTodos, validaciones,
                       )}
                       {gFechas.length > 0 && (
                         <div className="mb-4">
-                          <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-wider text-warning">Fechas prometidas</div>
+                          <div className="mb-1.5 text-micro font-bold uppercase tracking-wider text-warning">Fechas prometidas</div>
                           <div className="rounded-lg border border-warning/20 bg-warning/5 px-3 py-2">
                             <FechasPrometidasContratista fechas={gFechas} />
                           </div>
                         </div>
                       )}
                       <div className="mb-2 border-t-2 border-border pt-3">
-                        <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-wider text-foreground">Detalle de talleres</div>
+                        <div className="mb-1.5 text-micro font-bold uppercase tracking-wider text-foreground">Detalle de talleres</div>
                       </div>
                       <TallerDetailTable detailList={gDetail} subs={subs} />
                     </div>
