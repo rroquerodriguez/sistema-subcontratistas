@@ -95,7 +95,7 @@ function TallaresTabla({ items, showSub, subName, validacionDe, renderCells, ren
     <TablaOTarjetas
       tarjetas={
         rows.length ? rows.map((t) => (
-          <div key={t.id} className="flex items-start gap-2">
+          <div key={t.id} className="stagger-item flex items-start gap-2">
             {seleccionActiva && (
               <Checkbox className="mt-4" checked={seleccion!.has(t.id)} onCheckedChange={() => onToggleUno!(t.id)} aria-label="Seleccionar taller" />
             )}
