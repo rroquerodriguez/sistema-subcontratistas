@@ -4,6 +4,18 @@
 
 @layer base {
   :root {
+    /* ----------------------------------------------------------------------------------------
+     * CURVAS DE ANIMACIÓN
+     * Las curvas nativas de CSS (ease, ease-out) son flojas: les falta el "punch" que hace que
+     * una animación se sienta intencional. Estas son variantes más fuertes.
+     *
+     * Regla clave: NUNCA usar ease-in en UI. Arranca lento justo en el momento que el usuario
+     * está mirando, y hace que la interfaz se sienta pesada aunque dure lo mismo.
+     * -------------------------------------------------------------------------------------- */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1); /* curva tipo iOS para paneles que suben */
+
     --background: 0 0% 100%;
     --foreground: 204 19% 26%;
     --card: 0 0% 100%;
@@ -75,35 +87,137 @@
 }
 
 /* ------------------------------------------------------------------------------------------------
- * TARGETS TÁCTILES
- * En dispositivos táctiles (dedo, a veces con guantes o polvo de obra) los controles pequeños de
- * 24-32px son difíciles de acertar y se toca el vecino por error — peligroso cuando el vecino es un
- * botón de borrar. Los estándares de Apple (44pt) y Google (48dp) existen por eso.
+ * FEEDBACK DE PRESIÓN
+ * Un botón que no reacciona al presionarse no confirma que la interfaz "escuchó" al usuario. El
+ * scale sutil al presionar es el detalle invisible de mayor impacto: nadie lo nota conscientemente,
+ * pero su ausencia hace que la app se sienta muerta.
  *
- * La regla solo aplica donde el puntero es "grueso" (dedo), así que en escritorio con mouse la
- * interfaz mantiene su densidad compacta actual: no se engorda la vista de escritorio.
+ * Solo se anima `transform` (corre en GPU, no dispara layout ni paint). Los colores se transicionan
+ * aparte porque cambian en hover, no en press.
  * ---------------------------------------------------------------------------------------------- */
-@media (pointer: coarse) {
-  button,
-  [role='button'],
-  a[href],
-  select,
-  input[type='checkbox'],
-  input[type='radio'] {
-    min-height: 44px;
+@layer components {
+  .btn-press {
+    transition:
+      transform 160ms var(--ease-out),
+      background-color 160ms ease,
+      color 160ms ease,
+      border-color 160ms ease;
   }
 
-  /* Botones de solo icono: también ancho mínimo para que el área de toque sea cuadrada */
-  button.h-6,
-  button.h-7,
-  button.h-8 {
-    min-width: 44px;
-  }
-
-  /* Las casillas de selección conservan su tamaño visual pero ganan área de toque alrededor */
-  input[type='checkbox'],
-  [role='checkbox'] {
-    min-width: 24px;
-    min-height: 24px;
+  .btn-press:active:not(:disabled) {
+    transform: scale(0.97);
   }
 }
+
+@layer base {
+  /* --------------------------------------------------------------------------------------------
+   * HOVER SOLO EN DISPOSITIVOS CON PUNTERO FINO
+   * En pantallas táctiles el navegador dispara :hover al tocar, y el estado se queda "pegado"
+   * después de levantar el dedo. En una app que se usa con el dedo en obra, eso deja botones
+   * iluminados que parecen activos sin estarlo. Se neutraliza el hover donde no hay mouse real.
+   * ------------------------------------------------------------------------------------------ */
+  @media (hover: none) {
+    .btn-press:hover {
+      background-color: revert;
+      color: revert;
+    }
+  }
+
+  /* --------------------------------------------------------------------------------------------
+   * TARGETS TÁCTILES
+   * En dispositivos táctiles (dedo, a veces con guantes o polvo de obra) los controles pequeños de
+   * 24-32px son difíciles de acertar y se toca el vecino por error — peligroso cuando el vecino es
+   * un botón de borrar. Los estándares de Apple (44pt) y Google (48dp) existen por eso.
+   *
+   * Solo aplica donde el puntero es "grueso" (dedo): en escritorio con mouse la interfaz mantiene
+   * su densidad compacta actual.
+   * ------------------------------------------------------------------------------------------ */
+  @media (pointer: coarse) {
+    button,
+    [role='button'],
+    a[href],
+    select,
+    input[type='checkbox'],
+    input[type='radio'] {
+      min-height: 44px;
+    }
+
+    button.h-6,
+    button.h-7,
+    button.h-8 {
+      min-width: 44px;
+    }
+
+    input[type='checkbox'],
+    [role='checkbox'] {
+      min-width: 24px;
+      min-height: 24px;
+    }
+  }
+
+  /* --------------------------------------------------------------------------------------------
+   * MOVIMIENTO REDUCIDO (accesibilidad)
+   * "Movimiento reducido" no significa cero animación: significa menos movimiento. Se conservan
+   * las transiciones de opacidad y color (que ayudan a comprender el cambio de estado) y se
+   * eliminan los desplazamientos y escalados, que son los que provocan mareo.
+   * ------------------------------------------------------------------------------------------ */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+
+    /* Se conserva el fundido: comunica el cambio sin mover nada */
+    [data-state='open'],
+    [data-state='closed'] {
+      transition:
+        opacity 150ms ease !important;
+    }
+
+    .btn-press:active:not(:disabled) {
+      transform: none;
+    }
+
+    .stagger-item {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------
+ * STAGGER (aparición en cascada)
+ * Cuando entran varias tarjetas a la vez, aparecer todas de golpe se siente como un "flash".
+ * Un retraso corto y progresivo (40ms) crea una cascada natural. El retraso se corta al 8º elemento
+ * para que una lista larga no tarde en terminar de aparecer — el stagger es decorativo y nunca debe
+ * hacer esperar al usuario.
+ * ---------------------------------------------------------------------------------------------- */
+@keyframes stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-item {
+  opacity: 0;
+  animation: stagger-in 260ms var(--ease-out) forwards;
+}
+
+.stagger-item:nth-child(1) { animation-delay: 0ms; }
+.stagger-item:nth-child(2) { animation-delay: 40ms; }
+.stagger-item:nth-child(3) { animation-delay: 80ms; }
+.stagger-item:nth-child(4) { animation-delay: 120ms; }
+.stagger-item:nth-child(5) { animation-delay: 160ms; }
+.stagger-item:nth-child(6) { animation-delay: 200ms; }
+.stagger-item:nth-child(7) { animation-delay: 240ms; }
+.stagger-item:nth-child(n + 8) { animation-delay: 280ms; }
