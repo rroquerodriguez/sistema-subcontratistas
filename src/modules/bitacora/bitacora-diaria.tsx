@@ -109,7 +109,7 @@ function RegistrosTabla({
             </TableCell>
             <TableCell>{b.motivo || '—'}</TableCell>
             <TableCell>{b.responsable || '—'}</TableCell>
-            <TableCell className="text-[11.5px] text-muted-foreground" title={b.registradoEn ? fmtDateTime(b.registradoEn) : ''}>
+            <TableCell className="text-caption text-muted-foreground" title={b.registradoEn ? fmtDateTime(b.registradoEn) : ''}>
               {b.registradoPor || '—'}
             </TableCell>
             <TableCell>{b.fotos.length ? <Button size="sm" variant="outline" onClick={() => onViewPhotos(b.fotos)}>{b.fotos.length} foto(s)</Button> : '—'}</TableCell>
@@ -270,8 +270,8 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
     <div>
       <Card>
         <CardContent className="p-5">
-          <div className="mb-1 text-[17px] font-semibold">Bitácora de obra</div>
-          <div className="mb-4 text-[12px] text-muted-foreground">Da seguimiento diario a la asistencia y registra el avance de ejecución de cada taller.</div>
+          <div className="mb-1 text-title font-semibold">Bitácora de obra</div>
+          <div className="mb-4 text-caption text-muted-foreground">Da seguimiento diario a la asistencia y registra el avance de ejecución de cada taller.</div>
 
           <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
@@ -329,18 +329,18 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
                             <div className="mb-2 flex items-center gap-2.5">
                               <SubAvatar name={subName(t.subcontratistaId)} id={t.subcontratistaId} />
                               <div>
-                                <div className="text-[13.5px] font-medium">{subName(t.subcontratistaId)} — {t.esGeneral ? <Badge variant="secondary">General</Badge> : `${t.edificio} ${t.unidad}`}</div>
-                                <div className="text-[11.5px] text-muted-foreground">{t.actividad}</div>
+                                <div className="text-body font-medium">{subName(t.subcontratistaId)} — {t.esGeneral ? <Badge variant="secondary">General</Badge> : `${t.edificio} ${t.unidad}`}</div>
+                                <div className="text-caption text-muted-foreground">{t.actividad}</div>
                               </div>
                             </div>
                             {incidenciasTaller.length > 0 && (
                               <div className="mb-2.5 rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-1.5">
-                                <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold text-destructive">
+                                <div className="mb-1 flex items-center gap-1.5 text-micro font-semibold text-destructive">
                                   <AlertTriangle size={12} />Incidencias de este taller ({incidenciasTaller.length})
                                 </div>
                                 <div className="space-y-1">
                                   {incidenciasTaller.map((q) => (
-                                    <div key={q.id} className="text-[11.5px] text-muted-foreground">
+                                    <div key={q.id} className="text-caption text-muted-foreground">
                                       <span className="font-medium text-foreground">{q.tipo}</span> — {fmtDate(q.fecha)}{q.descripcion ? `: ${q.descripcion}` : ''}
                                     </div>
                                   ))}
@@ -406,7 +406,7 @@ export function BitacoraDiaria({ subs, talleres, bitacora, setBitacora, ciclos, 
                 </div>
               )}
 
-              <div className="mb-3.5 rounded-lg bg-muted/30 px-3.5 py-2.5 text-[12.5px] leading-relaxed">
+              <div className="mb-3.5 rounded-lg bg-muted/30 px-3.5 py-2.5 text-caption leading-relaxed">
                 {parrafoAnalisis}
               </div>
 
