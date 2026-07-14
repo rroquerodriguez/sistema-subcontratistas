@@ -15,7 +15,7 @@ export function MetricCard({ label, value, icon: Icon, colorBg, colorFg }: Metri
           <Icon size={15} />
         </div>
       </div>
-      <p className="text-[27px] font-semibold leading-none tracking-tight">{value}</p>
+      <p className="text-display font-semibold">{value}</p>
     </div>
   );
 }
