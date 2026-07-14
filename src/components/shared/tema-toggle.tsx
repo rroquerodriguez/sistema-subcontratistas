@@ -25,7 +25,7 @@ export function TemaToggle({ tema, onChange, variante = 'completo' }: TemaToggle
             key={valor}
             onClick={() => onChange(valor)}
             title={label}
-            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors ${
+            className={`btn-press flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium ${
               activo ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
