@@ -128,7 +128,7 @@ export function FechaPrometidaForm({ initial, subs, unidadesProyecto, preselectS
         <Label>Fecha prometida</Label>
         {esEdicion ? (
           <div className="flex items-center gap-2.5">
-            <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-[13.5px] font-medium">
+            <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-body font-medium">
               {f.fechaPrometidaActual || 'Sin definir'}
             </div>
             <Button type="button" variant="outline" size="sm" onClick={abrirModificarFecha}>
@@ -156,7 +156,7 @@ export function FechaPrometidaForm({ initial, subs, unidadesProyecto, preselectS
 
       {f.historialFechas.length > 0 && (
         <div className="my-3.5 rounded-md border border-border bg-muted/30 p-2.5">
-          <div className="mb-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
+          <div className="mb-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption">
             <span>
               Compromiso original: <strong>{fmtDate(fechaPrometidaOriginal(f))}</strong>
             </span>
@@ -171,10 +171,10 @@ export function FechaPrometidaForm({ initial, subs, unidadesProyecto, preselectS
             <span className="text-muted-foreground">·</span>
             <span>Reprogramada {vecesReprogramada(f)}x</span>
           </div>
-          <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Historial de cambios de fecha</div>
+          <div className="mb-1.5 text-micro font-semibold uppercase tracking-wide text-muted-foreground">Historial de cambios de fecha</div>
           <div className="space-y-1">
             {[...f.historialFechas].reverse().map((c, i) => (
-              <div key={i} className="text-[12px]">
+              <div key={i} className="text-caption">
                 Antes prometida para <strong>{c.fecha}</strong>{c.motivo ? ` — ${c.motivo}` : ''}
               </div>
             ))}
@@ -198,11 +198,11 @@ export function FechaPrometidaForm({ initial, subs, unidadesProyecto, preselectS
             <div className="mt-2 max-h-[220px] space-y-2 overflow-y-auto rounded-md border border-border bg-muted/20 p-2.5">
               {comentariosPorFecha().map(([dia, items]) => (
                 <div key={dia}>
-                  <div className="mb-1 text-[11px] font-semibold text-foreground">{fmtDate(dia)}</div>
+                  <div className="mb-1 text-micro font-semibold text-foreground">{fmtDate(dia)}</div>
                   <div className="space-y-1">
                     {items.map((c, i) => (
-                      <div key={i} className="rounded-md bg-card px-2.5 py-1.5 text-[12px]">
-                        <span className="text-[10.5px] text-muted-foreground">{fmtHora(c.fecha)}{c.autor ? ` · ${c.autor}` : ''}</span> — {c.texto}
+                      <div key={i} className="rounded-md bg-card px-2.5 py-1.5 text-caption">
+                        <span className="text-micro text-muted-foreground">{fmtHora(c.fecha)}{c.autor ? ` · ${c.autor}` : ''}</span> — {c.texto}
                       </div>
                     ))}
                   </div>
@@ -217,7 +217,7 @@ export function FechaPrometidaForm({ initial, subs, unidadesProyecto, preselectS
         <Label>Unidades afectadas</Label>
         <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2">
           <Checkbox id="esGeneralFp" checked={f.esGeneral} onCheckedChange={(c) => toggleGeneral(!!c)} />
-          <label htmlFor="esGeneralFp" className="text-[13px]">Marcar como general (afecta todos los talleres de este contratista; el campo Edificio puede quedar como "General" si aplica a todo un edificio)</label>
+          <label htmlFor="esGeneralFp" className="text-body">Marcar como general (afecta todos los talleres de este contratista; el campo Edificio puede quedar como "General" si aplica a todo un edificio)</label>
         </div>
 
         {!f.esGeneral && (
@@ -248,7 +248,7 @@ export function FechaPrometidaForm({ initial, subs, unidadesProyecto, preselectS
             {f.unidadesAfectadas.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {f.unidadesAfectadas.map((u, idx) => (
-                  <span key={idx} className="flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-[12px]">
+                  <span key={idx} className="flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-caption">
                     {unidadKey(u)}
                     <button onClick={() => quitarUnidad(idx)} aria-label="Quitar">
                       <X size={11} />
@@ -272,7 +272,7 @@ export function FechaPrometidaForm({ initial, subs, unidadesProyecto, preselectS
       </div>
 
       {soloLectura && (
-        <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[12.5px] text-amber-800">
+        <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-caption text-amber-800">
           Tienes acceso de solo lectura a este módulo. Puedes ver la información, pero no guardar cambios.
         </div>
       )}

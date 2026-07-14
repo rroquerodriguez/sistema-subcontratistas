@@ -90,8 +90,8 @@ export function FechasPrometidas({ subs, talleres, fechas, setFechas, showToast,
     <div>
       <Card>
         <CardContent className="p-5">
-          <div className="mb-1 text-[17px] font-semibold">Fechas prometidas por contratistas</div>
-          <div className="mb-4 text-[12px] text-muted-foreground">Registra los compromisos de fecha que dan los subcontratistas (materiales, entregas) y da seguimiento a su cumplimiento.</div>
+          <div className="mb-1 text-title font-semibold">Fechas prometidas por contratistas</div>
+          <div className="mb-4 text-caption text-muted-foreground">Registra los compromisos de fecha que dan los subcontratistas (materiales, entregas) y da seguimiento a su cumplimiento.</div>
 
           <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
@@ -175,7 +175,7 @@ export function FechasPrometidas({ subs, talleres, fechas, setFechas, showToast,
                       {diasOriginal !== null && diasOriginal > 0 ? (
                         <div className="flex items-center gap-1.5">
                           <Badge variant={cumplida ? 'secondary' : 'destructive'}>{diasOriginal} día{diasOriginal === 1 ? '' : 's'}</Badge>
-                          {reprogramaciones > 0 && <span className="text-[10.5px] text-muted-foreground">({reprogramaciones}x)</span>}
+                          {reprogramaciones > 0 && <span className="text-micro text-muted-foreground">({reprogramaciones}x)</span>}
                         </div>
                       ) : '—'}
                     </TableCell>
