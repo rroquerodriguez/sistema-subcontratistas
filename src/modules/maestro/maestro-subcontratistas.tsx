@@ -88,7 +88,7 @@ export function MaestroSubcontratistas({ subs, setSubs, talleres, quejas, showTo
       <Card>
         <CardContent className="p-5">
           <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2">
-            <span className="text-[15.5px] font-medium">
+            <span className="text-title font-medium">
               Maestro de subcontratistas <span className="font-normal text-muted-foreground">({subs.length})</span>
             </span>
             <div className="flex flex-wrap gap-2">
@@ -182,7 +182,7 @@ export function MaestroSubcontratistas({ subs, setSubs, talleres, quejas, showTo
       <Dialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Eliminar subcontratista</DialogTitle></DialogHeader>
-          <p className="text-[13.5px] leading-relaxed">
+          <p className="text-body leading-relaxed">
             ¿Seguro que deseas eliminar a <strong>{confirmDelete?.nombre}</strong>? Tiene {confirmDelete ? tallerCount(confirmDelete.id) : 0}{' '}
             taller(es) asociado(s) que permanecerán en el historial pero sin subcontratista vinculado. Esta acción no se puede deshacer.
           </p>
@@ -198,12 +198,12 @@ export function MaestroSubcontratistas({ subs, setSubs, talleres, quejas, showTo
           <DialogHeader><DialogTitle>Confirmar importación de plantilla</DialogTitle></DialogHeader>
           {previewPlantilla && (
             <div className="space-y-3">
-              <div className="rounded-md bg-muted/40 p-3 text-[13px]">
+              <div className="rounded-md bg-muted/40 p-3 text-body">
                 Se detectaron <strong>{previewPlantilla.totalFilas}</strong> fila(s) en el archivo, de las cuales <strong>{previewPlantilla.subcontratistas.length}</strong> se importarán al maestro.
                 {previewPlantilla.duplicados > 0 && <> Se omitieron <strong>{previewPlantilla.duplicados}</strong> por ya existir (mismo nombre).</>}
               </div>
               {previewPlantilla.erroresFila.length > 0 && (
-                <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-[12.5px]">
+                <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-caption">
                   <div className="mb-1 flex items-center gap-1.5 font-medium text-destructive"><AlertTriangle size={14} />Filas con errores (no se importarán)</div>
                   <ul className="max-h-[140px] list-disc space-y-0.5 overflow-y-auto pl-4">
                     {previewPlantilla.erroresFila.map((e, i) => <li key={i}>Fila {e.fila}: {e.motivo}</li>)}
@@ -211,7 +211,7 @@ export function MaestroSubcontratistas({ subs, setSubs, talleres, quejas, showTo
                 </div>
               )}
               {previewPlantilla.subcontratistas.length > 0 && (
-                <div className="max-h-[160px] overflow-y-auto rounded-md border border-border text-[11.5px]">
+                <div className="max-h-[160px] overflow-y-auto rounded-md border border-border text-caption">
                   <table className="w-full">
                     <thead className="bg-muted/50">
                       <tr><th className="px-2 py-1 text-left">Nombre</th><th className="px-2 py-1 text-left">Especialidad</th></tr>
