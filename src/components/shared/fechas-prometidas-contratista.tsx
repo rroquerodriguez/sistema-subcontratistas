@@ -11,7 +11,7 @@ export function FechasPrometidasContratista({ fechas }: FechasPrometidasContrati
   if (!fechas.length) return null;
   return (
     <div className="mb-4">
-      <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className="mb-1.5 text-micro font-semibold uppercase tracking-wide text-muted-foreground">
         Fechas prometidas del contratista ({fechas.length})
       </div>
       <div className="space-y-1.5">
@@ -20,11 +20,11 @@ export function FechasPrometidasContratista({ fechas }: FechasPrometidasContrati
           const cumplida = estaCumplida(fp);
           const atrasada = estaAtrasada(fp);
           return (
-            <div key={fp.id} className="rounded-md border border-border/70 bg-white/60 px-2.5 py-1.5 text-[12px]">
+            <div key={fp.id} className="rounded-md border border-border/70 bg-white/60 px-2.5 py-1.5 text-caption">
               <div className="mb-0.5 flex items-center justify-between gap-2">
                 <span className="font-medium">{fp.descripcion}</span>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] text-muted-foreground">Prometida: {fmtDate(fp.fechaPrometidaActual)}</span>
+                  <span className="text-micro text-muted-foreground">Prometida: {fmtDate(fp.fechaPrometidaActual)}</span>
                   {cumplida ? (
                     <Badge variant="success">Cumplida</Badge>
                   ) : atrasada ? (

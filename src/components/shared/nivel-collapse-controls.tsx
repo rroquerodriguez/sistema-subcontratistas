@@ -15,10 +15,10 @@ export function NivelCollapseControls({ niveles, onCollapseKeys, onExpandKeys }:
   if (!niveles.length) return null;
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-[11px] text-muted-foreground">Por nivel:</span>
+      <span className="text-micro text-muted-foreground">Por nivel:</span>
       {niveles.map((n, i) => (
         <div key={i} className="flex items-center gap-0.5 rounded-md border border-border px-1.5 py-0.5">
-          <span className="px-1 text-[11px] text-muted-foreground">{i + 1}. {n.label}</span>
+          <span className="px-1 text-micro text-muted-foreground">{i + 1}. {n.label}</span>
           <Button size="icon" variant="ghost" className="h-6 w-6" title={`Expandir nivel "${n.label}"`} onClick={() => onExpandKeys(n.keys)}>
             <ChevronsUpDown size={12} />
           </Button>

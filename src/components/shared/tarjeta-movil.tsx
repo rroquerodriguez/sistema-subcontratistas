@@ -32,9 +32,9 @@ export function TarjetaMovil({ semaforo, titulo, subtitulo, badges, campos, acci
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             {semaforo && <span className={`inline-block h-2 w-2 flex-shrink-0 rounded-full ${COLOR_SEMAFORO[semaforo]}`} />}
-            <span className="truncate text-[14px] font-semibold">{titulo}</span>
+            <span className="truncate text-base font-semibold">{titulo}</span>
           </div>
-          {subtitulo && <div className="mt-0.5 truncate pl-4 text-[12.5px] text-muted-foreground">{subtitulo}</div>}
+          {subtitulo && <div className="mt-0.5 truncate pl-4 text-caption text-muted-foreground">{subtitulo}</div>}
         </div>
         {badges && <div className="flex flex-shrink-0 flex-wrap justify-end gap-1">{badges}</div>}
       </div>
@@ -43,8 +43,8 @@ export function TarjetaMovil({ semaforo, titulo, subtitulo, badges, campos, acci
         <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-border pt-2.5">
           {campos.map((c, i) => (
             <div key={i} className="min-w-0">
-              <div className="text-[10.5px] uppercase tracking-wide text-muted-foreground">{c.label}</div>
-              <div className="truncate text-[12.5px]">{c.valor || '—'}</div>
+              <div className="text-micro uppercase tracking-wide text-muted-foreground">{c.label}</div>
+              <div className="truncate text-caption">{c.valor || '—'}</div>
             </div>
           ))}
         </div>

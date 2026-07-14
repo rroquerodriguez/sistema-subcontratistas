@@ -40,13 +40,13 @@ export function AgrupacionConfigButton({ opciones, seleccion, onChange }: Agrupa
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[280px]" align="start">
-        <div className="mb-2 text-[12px] font-medium">Niveles de agrupación</div>
-        <div className="mb-2.5 text-[11px] text-muted-foreground">
+        <div className="mb-2 text-caption font-medium">Niveles de agrupación</div>
+        <div className="mb-2.5 text-micro text-muted-foreground">
           El primer nivel agrupa por fuera; los siguientes agrupan dentro de cada grupo anterior.
         </div>
 
         {seleccion.length === 0 && (
-          <div className="mb-2.5 rounded-md border border-dashed border-border px-2.5 py-2 text-[11.5px] text-muted-foreground">
+          <div className="mb-2.5 rounded-md border border-dashed border-border px-2.5 py-2 text-caption text-muted-foreground">
             Sin agrupación — se muestra la lista completa.
           </div>
         )}
@@ -55,7 +55,7 @@ export function AgrupacionConfigButton({ opciones, seleccion, onChange }: Agrupa
           {seleccion.map((key, idx) => (
             <div key={key} className="flex items-center gap-1.5 rounded-md border border-border bg-muted/30 px-2 py-1.5">
               <GripVertical size={13} className="flex-shrink-0 text-muted-foreground/50" />
-              <span className="flex-1 text-[12px]">{idx + 1}. {labelOf(key)}</span>
+              <span className="flex-1 text-caption">{idx + 1}. {labelOf(key)}</span>
               <Button size="icon" variant="ghost" className="h-6 w-6" disabled={idx === 0} onClick={() => moverNivel(idx, -1)} aria-label="Subir nivel">
                 ↑
               </Button>

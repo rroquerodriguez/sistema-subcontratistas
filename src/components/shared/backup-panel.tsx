@@ -60,11 +60,11 @@ export function BackupPanel({ onRestored, showToast }: BackupPanelProps) {
   return (
     <Card>
       <CardContent className="p-5">
-        <div className="mb-1 flex items-center gap-2 text-[15.5px] font-medium">
+        <div className="mb-1 flex items-center gap-2 text-title font-medium">
           <DatabaseBackup size={16} />
           Respaldo de datos
         </div>
-        <div className="mb-3 text-[12px] text-muted-foreground">
+        <div className="mb-3 text-caption text-muted-foreground">
           Esta app guarda los datos mientras la abras dentro de Claude. Si abres el archivo HTML directamente en tu navegador (fuera de Claude, por ejemplo desde tu carpeta de Descargas), los datos no se guardan de forma permanente y se pueden perder al cerrar la pestaña.
           Descarga un respaldo después de cada sesión de trabajo importante, y úsalo para restaurar tus datos si alguna vez los ves vacíos o desactualizados.
         </div>
@@ -82,7 +82,7 @@ export function BackupPanel({ onRestored, showToast }: BackupPanelProps) {
       <Dialog open={!!archivoPendiente} onOpenChange={(o) => !o && setArchivoPendiente(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Restaurar respaldo</DialogTitle></DialogHeader>
-          <div className="space-y-3 text-[13px]">
+          <div className="space-y-3 text-body">
             <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3">
               <AlertTriangle size={16} className="mt-0.5 flex-shrink-0 text-warning" />
               <div>

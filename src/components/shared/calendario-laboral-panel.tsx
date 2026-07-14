@@ -62,25 +62,25 @@ export function CalendarioLaboralPanel({ calendario, onChange, showToast, soloLe
   return (
     <Card>
       <CardContent className="p-5">
-        <div className="mb-1 flex items-center gap-2 text-[15.5px] font-medium">
+        <div className="mb-1 flex items-center gap-2 text-title font-medium">
           <CalendarClock size={16} />
           Calendario laboral de la obra
         </div>
-        <p className="mb-4 text-[12.5px] leading-relaxed text-muted-foreground">
+        <p className="mb-4 text-caption leading-relaxed text-muted-foreground">
           Define qué días se trabaja y el horario de jornada. Esto determina cómo el sistema cuenta los
           días laborables para las duraciones estándar de las actividades y las fechas de conclusión
           esperadas. Los días no marcados (y los feriados) se saltan al contar.
         </p>
 
         <div className="mb-4">
-          <Label className="mb-2 block text-[13px]">Días laborables</Label>
+          <Label className="mb-2 block text-body">Días laborables</Label>
           <div className="flex flex-wrap gap-2">
             {DIAS.map((dia) => {
               const activo = borrador.diasLaborables.includes(dia);
               return (
                 <label
                   key={dia}
-                  className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-[13px] transition-colors ${
+                  className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-body transition-colors ${
                     activo ? 'border-primary bg-primary/10 font-medium' : 'border-border text-muted-foreground'
                   } ${soloLectura ? 'pointer-events-none opacity-70' : 'hover:bg-muted/40'}`}
                 >
@@ -90,20 +90,20 @@ export function CalendarioLaboralPanel({ calendario, onChange, showToast, soloLe
               );
             })}
           </div>
-          <p className="mt-1.5 text-[11.5px] text-muted-foreground">Configuración actual: <strong>{resumenDiasLaborables(borrador)}</strong></p>
+          <p className="mt-1.5 text-caption text-muted-foreground">Configuración actual: <strong>{resumenDiasLaborables(borrador)}</strong></p>
         </div>
 
         <div className="mb-4 grid max-w-sm grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label className="text-[13px]">Hora de entrada</Label>
+            <Label className="text-body">Hora de entrada</Label>
             <Input type="time" value={borrador.horaEntrada} disabled={soloLectura} onChange={(e) => setBorrador((p) => ({ ...p, horaEntrada: e.target.value }))} />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[13px]">Hora de salida</Label>
+            <Label className="text-body">Hora de salida</Label>
             <Input type="time" value={borrador.horaSalida} disabled={soloLectura} onChange={(e) => setBorrador((p) => ({ ...p, horaSalida: e.target.value }))} />
           </div>
         </div>
-        <p className="mb-4 text-[11.5px] text-muted-foreground">
+        <p className="mb-4 text-caption text-muted-foreground">
           El horario queda documentado como jornada oficial de la obra. En esta versión las duraciones
           se cuentan en días completos; el horario es informativo y aparece en reportes.
         </p>

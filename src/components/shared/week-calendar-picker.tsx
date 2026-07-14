@@ -72,7 +72,7 @@ export function WeekCalendarPicker({ semanaActual, onChange }: WeekCalendarPicke
           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => changeMonth(1)} aria-label="Mes siguiente"><ChevronRight size={15} /></Button>
         </div>
 
-        <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[10.5px] font-medium text-muted-foreground">
+        <div className="mb-1 grid grid-cols-7 gap-1 text-center text-micro font-medium text-muted-foreground">
           {DIAS_CORTOS.map((d) => <div key={d}>{d}</div>)}
         </div>
 
@@ -85,7 +85,7 @@ export function WeekCalendarPicker({ semanaActual, onChange }: WeekCalendarPicke
                 key={monday}
                 onClick={() => selectWeek(monday)}
                 className={cn(
-                  'grid w-full grid-cols-7 gap-1 rounded-md py-1 text-[12px] transition-colors hover:bg-muted',
+                  'grid w-full grid-cols-7 gap-1 rounded-md py-1 text-caption transition-colors hover:bg-muted',
                   isSelected && 'bg-primary text-primary-foreground hover:bg-primary/90'
                 )}
               >

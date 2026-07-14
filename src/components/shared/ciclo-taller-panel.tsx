@@ -107,9 +107,9 @@ export function CicloTallerPanel({ ciclo, onChange, onRegistroDiario, registroHo
     <div className="rounded-lg border border-border p-3.5">
       {/* Asistencia del día */}
       <div className="mb-3 rounded-md bg-muted/40 p-2.5">
-        <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Registro de hoy ({fmtDate(todayISO())})</div>
+        <div className="mb-1.5 text-micro font-semibold uppercase tracking-wide text-muted-foreground">Registro de hoy ({fmtDate(todayISO())})</div>
         <div>
-          <div className="mb-1 text-[11px] text-muted-foreground">¿Personal asignado por el subcontratista?</div>
+          <div className="mb-1 text-micro text-muted-foreground">¿Personal asignado por el subcontratista?</div>
           <div className="flex gap-1">
             <Button size="sm" type="button" variant={llegHoy === 'SI' ? 'default' : 'outline'} className="h-7 px-2 text-xs" onClick={() => setLlego('SI')} disabled={soloLectura}>SI</Button>
             <Button size="sm" type="button" variant={llegHoy === 'NO' ? 'destructive' : 'outline'} className="h-7 px-2 text-xs" onClick={() => setLlego('NO')} disabled={soloLectura}>NO</Button>
@@ -120,7 +120,7 @@ export function CicloTallerPanel({ ciclo, onChange, onRegistroDiario, registroHo
       {/* Estado del ciclo */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Estado del trabajo</span>
+          <span className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">Estado del trabajo</span>
           <Badge variant={ESTADO_BADGE[ciclo.estado]}>{ciclo.estado}</Badge>
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -137,7 +137,7 @@ export function CicloTallerPanel({ ciclo, onChange, onRegistroDiario, registroHo
       </div>
 
       {ciclo.fechaInicio && (
-        <div className="mb-3 flex flex-wrap gap-x-4 gap-y-0.5 text-[11.5px] text-muted-foreground">
+        <div className="mb-3 flex flex-wrap gap-x-4 gap-y-0.5 text-caption text-muted-foreground">
           <span>Inicio: <strong className="text-foreground">{fmtDate(ciclo.fechaInicio)}</strong></span>
           {ciclo.estado === 'COMPLETADO' && ciclo.fechaCierre && <span>Cierre: <strong className="text-foreground">{fmtDate(ciclo.fechaCierre)}</strong></span>}
           {duracion !== null && <span>{ciclo.estado === 'COMPLETADO' ? 'Duración' : 'Lleva'}: <strong className="text-foreground">{duracion} día{duracion === 1 ? '' : 's'}</strong></span>}
@@ -147,12 +147,12 @@ export function CicloTallerPanel({ ciclo, onChange, onRegistroDiario, registroHo
       {/* Comentarios de avance */}
       {ciclo.estado !== 'NO INICIADO' && (
         <div>
-          <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Comentarios de avance</div>
+          <div className="mb-1 text-micro font-semibold uppercase tracking-wide text-muted-foreground">Comentarios de avance</div>
           {!soloLectura && (
             <div className="mb-1.5 flex gap-2">
               <Textarea
                 rows={2} placeholder="Agregar comentario de avance..."
-                value={comentario} onChange={(e) => setComentario(e.target.value)} className="text-[12.5px]"
+                value={comentario} onChange={(e) => setComentario(e.target.value)} className="text-caption"
               />
               <Button size="sm" className="h-auto" onClick={agregarComentario} disabled={!comentario.trim()}>Agregar</Button>
             </div>
@@ -161,12 +161,12 @@ export function CicloTallerPanel({ ciclo, onChange, onRegistroDiario, registroHo
             <div className="space-y-3">
               {gruposPorFecha.map(({ dia, items }) => (
                 <div key={dia}>
-                  <div className="mb-1 text-[11px] font-semibold text-foreground">{fmtDate(dia)}{dia === todayISO() ? ' (hoy)' : ''}</div>
+                  <div className="mb-1 text-micro font-semibold text-foreground">{fmtDate(dia)}{dia === todayISO() ? ' (hoy)' : ''}</div>
                   <div className="space-y-1.5">
                     {items.map(({ fecha, texto, idx, autor }) => (
-                      <div key={idx} className="rounded-md bg-muted/40 px-2.5 py-1.5 text-[12px]">
+                      <div key={idx} className="rounded-md bg-muted/40 px-2.5 py-1.5 text-caption">
                         <div className="mb-0.5 flex items-center justify-between gap-1">
-                          <span className="text-[10.5px] text-muted-foreground">{fmtHora(fecha)}{autor ? ` · ${autor}` : ''}</span>
+                          <span className="text-micro text-muted-foreground">{fmtHora(fecha)}{autor ? ` · ${autor}` : ''}</span>
                           {!soloLectura && (
                             <div className="flex gap-1">
                               {editingIdx !== idx && (
@@ -180,7 +180,7 @@ export function CicloTallerPanel({ ciclo, onChange, onRegistroDiario, registroHo
                         </div>
                         {editingIdx === idx ? (
                           <div className="flex gap-1">
-                            <Input className="h-7 text-[12px]" value={editingText} onChange={(e) => setEditingText(e.target.value)} autoFocus />
+                            <Input className="h-7 text-caption" value={editingText} onChange={(e) => setEditingText(e.target.value)} autoFocus />
                             <Button size="icon" variant="default" className="h-7 w-7" onClick={() => saveEdit(idx)}><Check size={12} /></Button>
                             <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => setEditingIdx(null)}><X size={12} /></Button>
                           </div>

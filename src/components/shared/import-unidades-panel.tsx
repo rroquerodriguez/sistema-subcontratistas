@@ -65,11 +65,11 @@ export function ImportUnidadesPanel({ unidades, setUnidades, onSaved, archivoMet
   return (
     <Card>
       <CardContent className="p-5">
-        <div className="mb-1 flex items-center gap-2 text-[15.5px] font-medium">
+        <div className="mb-1 flex items-center gap-2 text-title font-medium">
           <FileSpreadsheet size={16} />
           Reporte de unidades del proyecto
         </div>
-        <div className="mb-3 text-[12px] text-muted-foreground">
+        <div className="mb-3 text-caption text-muted-foreground">
           Sube el Excel de reporte de unidades para que la plataforma tome automáticamente el listado de unidades, técnico asignado, inspector de calidad y fecha promesa. Estos datos alimentan los selectores de unidad en Planificación, Fechas Prometidas y Evaluación, y la fecha promesa sugiere la prioridad (editable).
         </div>
 
@@ -83,7 +83,7 @@ export function ImportUnidadesPanel({ unidades, setUnidades, onSaved, archivoMet
         </div>
 
         {archivoMeta && (
-          <div className="flex items-center gap-1.5 rounded-md bg-muted/40 px-2.5 py-1.5 text-[11.5px] text-muted-foreground">
+          <div className="flex items-center gap-1.5 rounded-md bg-muted/40 px-2.5 py-1.5 text-caption text-muted-foreground">
             <Clock size={12} />
             Último archivo subido: <strong className="text-foreground">{archivoMeta.nombreArchivo}</strong> — {fmtDateTime(archivoMeta.subidoEn)} ({archivoMeta.totalImportadas} de {archivoMeta.totalFilas} fila(s) importadas)
           </div>
@@ -95,22 +95,22 @@ export function ImportUnidadesPanel({ unidades, setUnidades, onSaved, archivoMet
           <DialogHeader><DialogTitle>Confirmar importación</DialogTitle></DialogHeader>
           {preview && (
             <div className="space-y-3">
-              <div className="rounded-md bg-muted/40 p-3 text-[13px]">
+              <div className="rounded-md bg-muted/40 p-3 text-body">
                 Se detectaron <strong>{preview.totalFilas}</strong> fila(s) en el archivo, de las cuales <strong>{preview.unidades.length}</strong> tienen unidad válida y serán importadas.
               </div>
               {preview.advertencias.length > 0 && (
-                <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-[12.5px]">
+                <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-caption">
                   <div className="mb-1 flex items-center gap-1.5 font-medium text-warning"><AlertTriangle size={14} />Advertencias</div>
                   <ul className="list-disc space-y-0.5 pl-4">
                     {preview.advertencias.map((a, i) => <li key={i}>{a}</li>)}
                   </ul>
                 </div>
               )}
-              <div className="text-[11.5px] text-muted-foreground">
+              <div className="text-caption text-muted-foreground">
                 Columnas detectadas: {preview.columnasDetectadas.join(', ')}
               </div>
               {preview.unidades.length > 0 && (
-                <div className="max-h-[180px] overflow-y-auto rounded-md border border-border text-[11.5px]">
+                <div className="max-h-[180px] overflow-y-auto rounded-md border border-border text-caption">
                   <table className="w-full">
                     <thead className="bg-muted/50">
                       <tr><th className="px-2 py-1 text-left">Edificio</th><th className="px-2 py-1 text-left">Unidad</th><th className="px-2 py-1 text-left">Técnico</th><th className="px-2 py-1 text-left">F. Promesa</th></tr>

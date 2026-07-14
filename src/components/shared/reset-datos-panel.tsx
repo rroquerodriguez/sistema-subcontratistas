@@ -71,11 +71,11 @@ export function ResetDatosPanel({ onReset, showToast }: ResetDatosPanelProps) {
   return (
     <Card className="border-destructive/30">
       <CardContent className="p-5">
-        <div className="mb-1 flex items-center gap-2 text-[15.5px] font-medium text-destructive">
+        <div className="mb-1 flex items-center gap-2 text-title font-medium text-destructive">
           <ShieldAlert size={16} />
           Borrar / resetear datos
         </div>
-        <div className="mb-3.5 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-[12.5px]">
+        <div className="mb-3.5 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-caption">
           <AlertTriangle size={15} className="mt-0.5 flex-shrink-0 text-destructive" />
           <div>
             Esta sección borra información de forma <strong>permanente</strong>. Úsala para limpiar datos de prueba
@@ -85,8 +85,8 @@ export function ResetDatosPanel({ onReset, showToast }: ResetDatosPanelProps) {
         </div>
 
         <div className="mb-2.5 flex items-center justify-between">
-          <div className="text-[13px] font-medium">Elige qué módulos borrar</div>
-          <Button size="sm" variant="ghost" className="h-7 text-[12px]" onClick={toggleTodos}>
+          <div className="text-body font-medium">Elige qué módulos borrar</div>
+          <Button size="sm" variant="ghost" className="h-7 text-caption" onClick={toggleTodos}>
             {todosSeleccionados ? 'Desmarcar todos' : 'Seleccionar todo'}
           </Button>
         </div>
@@ -99,8 +99,8 @@ export function ResetDatosPanel({ onReset, showToast }: ResetDatosPanelProps) {
             >
               <Checkbox checked={seleccion.has(m.key)} onCheckedChange={() => toggle(m.key)} className="mt-0.5" />
               <div>
-                <div className="text-[13px] font-medium">{m.label}</div>
-                <div className="text-[11.5px] text-muted-foreground">{m.descripcion}</div>
+                <div className="text-body font-medium">{m.label}</div>
+                <div className="text-caption text-muted-foreground">{m.descripcion}</div>
               </div>
             </label>
           ))}
@@ -116,7 +116,7 @@ export function ResetDatosPanel({ onReset, showToast }: ResetDatosPanelProps) {
       <Dialog open={confirmando} onOpenChange={(o) => !o && setConfirmando(false)}>
         <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
           <DialogHeader><DialogTitle>Confirmar borrado de datos</DialogTitle></DialogHeader>
-          <div className="space-y-3 text-[13px]">
+          <div className="space-y-3 text-body">
             <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3">
               <AlertTriangle size={16} className="mt-0.5 flex-shrink-0 text-destructive" />
               <div>Estás a punto de borrar permanentemente los siguientes módulos. Esta acción <strong>no se puede deshacer</strong>.</div>
@@ -125,7 +125,7 @@ export function ResetDatosPanel({ onReset, showToast }: ResetDatosPanelProps) {
               {modulosSeleccionados.map((m) => <li key={m.key}>{m.label}</li>)}
             </ul>
             <div>
-              <div className="mb-1.5 text-[12.5px] text-muted-foreground">Para confirmar, escribe <strong>BORRAR</strong> en el campo:</div>
+              <div className="mb-1.5 text-caption text-muted-foreground">Para confirmar, escribe <strong>BORRAR</strong> en el campo:</div>
               <Input
                 value={textoConfirmacion}
                 onChange={(e) => setTextoConfirmacion(e.target.value)}

@@ -40,7 +40,7 @@ export function PhotoUploader({ photos, onAdd, onRemove }: PhotoUploaderProps) {
             <button
               onClick={() => onRemove(i)}
               aria-label="Eliminar foto"
-              className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-none bg-primary text-[11px] text-primary-foreground"
+              className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-none bg-primary text-micro text-primary-foreground"
             >
               <X size={11} />
             </button>
