@@ -640,7 +640,7 @@ export function PlanificacionSemanal({
         <Card className="mb-4 border-warning/40 bg-warning/10">
           <CardContent className="p-4">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-[13.5px] font-medium text-warning-foreground">
+              <div className="flex items-center gap-2 text-body font-medium text-warning-foreground">
                 <AlertTriangle size={16} className="text-warning" />
                 {atrasados.length} taller(es) atrasado(s) de semanas anteriores
               </div>
@@ -650,7 +650,7 @@ export function PlanificacionSemanal({
             </div>
             <div className="space-y-1.5">
               {atrasados.map((t) => (
-                <div key={t.id} className="flex items-center justify-between rounded-md bg-white/60 px-3 py-1.5 text-[12.5px]">
+                <div key={t.id} className="flex items-center justify-between rounded-md bg-white/60 px-3 py-1.5 text-caption">
                   <span>
                     <span className="font-medium">{subName(t.subcontratistaId)}</span> — {t.edificio} {t.unidad} ({t.actividad || 'sin actividad'}) · semana del {weekRangeLabel(t.semana)}
                     {!!t.vecesArrastrado && <Badge variant="destructive" className="ml-1.5"><History size={10} className="mr-1" />{t.vecesArrastrado}x arrastrado</Badge>}
@@ -667,19 +667,19 @@ export function PlanificacionSemanal({
       {(fechasAtrasadasRelevantes.length > 0 || fechasProximasRelevantes.length > 0) && (
         <Card className="mb-4 border-destructive/30 bg-destructive/5">
           <CardContent className="p-4">
-            <div className="mb-2 flex items-center gap-2 text-[13.5px] font-medium text-destructive">
+            <div className="mb-2 flex items-center gap-2 text-body font-medium text-destructive">
               <AlertTriangle size={16} />
               Fechas prometidas por contratistas
             </div>
             <div className="space-y-1.5">
               {fechasAtrasadasRelevantes.map((fp) => (
-                <div key={fp.id} className="flex items-center justify-between rounded-md bg-white/60 px-3 py-1.5 text-[12.5px]">
+                <div key={fp.id} className="flex items-center justify-between rounded-md bg-white/60 px-3 py-1.5 text-caption">
                   <span><span className="font-medium">{subName(fp.subcontratistaId)}</span> — {fp.descripcion} <Badge variant="destructive">atrasada</Badge></span>
                   <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => goTo('fechas')}>Ver</Button>
                 </div>
               ))}
               {fechasProximasRelevantes.map((fp) => (
-                <div key={fp.id} className="flex items-center justify-between rounded-md bg-white/60 px-3 py-1.5 text-[12.5px]">
+                <div key={fp.id} className="flex items-center justify-between rounded-md bg-white/60 px-3 py-1.5 text-caption">
                   <span><span className="font-medium">{subName(fp.subcontratistaId)}</span> — {fp.descripcion} <Badge variant="warning">prometida {fmtDate(fp.fechaPrometidaActual)}</Badge></span>
                   <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => goTo('fechas')}>Ver</Button>
                 </div>
@@ -690,8 +690,8 @@ export function PlanificacionSemanal({
       )}
       <Card>
         <CardContent className="p-5">
-          <div className="mb-1 text-[17px] font-semibold">Planificación</div>
-          <div className="mb-4 text-[12px] text-muted-foreground">Programa y da seguimiento a los talleres asignados a cada subcontratista, por semana o por mes.</div>
+          <div className="mb-1 text-title font-semibold">Planificación</div>
+          <div className="mb-4 text-caption text-muted-foreground">Programa y da seguimiento a los talleres asignados a cada subcontratista, por semana o por mes.</div>
 
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2.5">
             <div className="flex flex-wrap items-center gap-2.5">
@@ -704,7 +704,7 @@ export function PlanificacionSemanal({
               ) : (
                 <MonthPicker mesKey={mesActual} onChange={setMesActual} />
               )}
-              <span className="text-[11px] text-muted-foreground">{semanaTalleres.length} taller(es) planificados</span>
+              <span className="text-micro text-muted-foreground">{semanaTalleres.length} taller(es) planificados</span>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => setShowMulti(true)} disabled={soloLectura}><LayoutGrid size={14} />Agregar talleres</Button>
@@ -718,7 +718,7 @@ export function PlanificacionSemanal({
             </div>
           </div>
 
-          <div className="mb-4 rounded-lg bg-muted/40 px-3.5 py-2.5 text-[12.5px] leading-relaxed">
+          <div className="mb-4 rounded-lg bg-muted/40 px-3.5 py-2.5 text-caption leading-relaxed">
             {analisisPeriodo}
           </div>
 
@@ -810,7 +810,7 @@ export function PlanificacionSemanal({
 
           {!soloLectura && vista !== 'semanal' && seleccion.size > 0 && (
             <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3.5 py-2.5">
-              <span className="text-[13px] font-medium">{seleccion.size} taller(es) seleccionado(s)</span>
+              <span className="text-body font-medium">{seleccion.size} taller(es) seleccionado(s)</span>
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" onClick={limpiarSeleccion}>Limpiar selección</Button>
                 <Button size="sm" variant="outline" onClick={abrirCorreccion}>
@@ -823,7 +823,7 @@ export function PlanificacionSemanal({
             </div>
           )}
           {!soloLectura && vista === 'semanal' && seleccion.size > 0 && (
-            <div className="mb-3.5 rounded-lg border border-border bg-muted/30 px-3.5 py-2 text-[12px] text-muted-foreground">
+            <div className="mb-3.5 rounded-lg border border-border bg-muted/30 px-3.5 py-2 text-caption text-muted-foreground">
               Tienes {seleccion.size} taller(es) seleccionado(s) desde otra vista. La selección múltiple con casillas está disponible en las vistas "Por contratista", "Vista global de obra" y "Agrupación personalizada".
             </div>
           )}
@@ -879,13 +879,13 @@ export function PlanificacionSemanal({
               >
                 {g.proyectos.map((p) => (
                   <div key={p.proyecto} className="mb-3">
-                    <div className="mb-1.5 ml-6 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{p.proyecto}</div>
+                    <div className="mb-1.5 ml-6 text-micro font-semibold uppercase tracking-wide text-muted-foreground">{p.proyecto}</div>
                     <div className="overflow-x-auto">
-                      <table className="w-full border-collapse text-[12px]">
+                      <table className="w-full border-collapse text-caption">
                         <thead>
                           <tr>
                             {DIAS_ORDER.map((d) => (
-                              <th key={d} className="border-b border-border bg-muted/40 px-2 py-1.5 text-left font-medium">{d} <span className="text-[10px] text-muted-foreground">{fmtDate(fechaDeISODia(semanaActual, d))}</span></th>
+                              <th key={d} className="border-b border-border bg-muted/40 px-2 py-1.5 text-left font-medium">{d} <span className="text-micro text-muted-foreground">{fmtDate(fechaDeISODia(semanaActual, d))}</span></th>
                             ))}
                           </tr>
                         </thead>
@@ -904,7 +904,7 @@ export function PlanificacionSemanal({
                                         className="block w-full rounded-md border border-border/70 bg-card px-2 py-1.5 text-left hover:border-primary hover:bg-muted/40"
                                       >
                                         <div className="font-medium">{t.esGeneral ? <Badge variant="secondary" className="mr-1">General</Badge> : `${t.edificio} ${t.unidad}`}{!!t.vecesArrastrado && <Badge variant="destructive" className="ml-1">{t.vecesArrastrado}x</Badge>}</div>
-                                        <div className="truncate text-[10.5px] text-muted-foreground">{t.actividad || 'Sin actividad'}</div>
+                                        <div className="truncate text-micro text-muted-foreground">{t.actividad || 'Sin actividad'}</div>
                                         <div className="mt-0.5"><EstadoLiberacionBadge estado={estado} /></div>
                                       </button>
                                     );
@@ -938,19 +938,19 @@ export function PlanificacionSemanal({
           <DialogHeader><DialogTitle>Mover a otra semana (corrección)</DialogTitle></DialogHeader>
           {correccionModal && (
             <div className="space-y-3.5">
-              <div className="rounded-md bg-muted/40 p-3 text-[12.5px] leading-relaxed text-muted-foreground">
+              <div className="rounded-md bg-muted/40 p-3 text-caption leading-relaxed text-muted-foreground">
                 Usa esto cuando un taller quedó en la semana equivocada por error. Se moverá a la semana que elijas <strong>conservando el mismo día</strong>, y <strong>no</strong> se contará como arrastre (no suma al contador ni marca atraso). Para mover talleres atrasados que sí se están postergando, usa el botón "Mover a esta semana" del aviso de atrasados.
               </div>
               <div>
-                <div className="mb-1.5 text-[12.5px] font-medium">Semana destino</div>
+                <div className="mb-1.5 text-caption font-medium">Semana destino</div>
                 <WeekCalendarPicker
                   semanaActual={correccionModal.semanaDestino}
                   onChange={(monday) => setCorreccionModal((prev) => (prev ? { ...prev, semanaDestino: monday } : prev))}
                 />
               </div>
               <div className="rounded-md border border-border p-2.5">
-                <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{correccionModal.talleres.length} taller(es) a mover</div>
-                <div className="max-h-[180px] space-y-1 overflow-y-auto text-[12.5px]">
+                <div className="mb-1.5 text-micro font-semibold uppercase tracking-wide text-muted-foreground">{correccionModal.talleres.length} taller(es) a mover</div>
+                <div className="max-h-[180px] space-y-1 overflow-y-auto text-caption">
                   {correccionModal.talleres.map((t) => (
                     <div key={t.id}>
                       <span className="font-medium">{subName(t.subcontratistaId)}</span> — {t.esGeneral ? 'General' : `${t.edificio} ${t.unidad}`}
@@ -971,7 +971,7 @@ export function PlanificacionSemanal({
       <Dialog open={confirmarBorradoMasivo} onOpenChange={(o) => !o && setConfirmarBorradoMasivo(false)}>
         <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
           <DialogHeader><DialogTitle>Eliminar talleres seleccionados</DialogTitle></DialogHeader>
-          <p className="text-[13.5px] leading-relaxed">
+          <p className="text-body leading-relaxed">
             Vas a eliminar <strong>{seleccion.size} taller(es)</strong> junto con sus validaciones y entregas asociadas. Esta acción no se puede deshacer.
           </p>
           <DialogFooter>
@@ -992,12 +992,12 @@ export function PlanificacionSemanal({
           </DialogHeader>
           {arrastreModal && (
             <div className="space-y-3">
-              <div className="rounded-md bg-muted/40 p-3 text-[12.5px] text-muted-foreground">
+              <div className="rounded-md bg-muted/40 p-3 text-caption text-muted-foreground">
                 Por defecto se sugiere el mismo día que tenían, pero puedes elegir otro. Esto queda registrado: si un taller ya se había arrastrado antes, el contador de arrastres sube y se conserva la semana y el día en que se planificó originalmente.
               </div>
               {arrastreModal.talleres.length > 1 && (
                 <div className="flex items-center gap-2 rounded-md border border-border bg-muted/20 px-3 py-2">
-                  <span className="text-[12px] font-medium">Aplicar el mismo día a todos:</span>
+                  <span className="text-caption font-medium">Aplicar el mismo día a todos:</span>
                   <Select value={diaMasivoArrastre} onValueChange={(v) => aplicarDiaATodos(v as DiaSemana)}>
                     <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="Elegir día..." /></SelectTrigger>
                     <SelectContent>
@@ -1008,7 +1008,7 @@ export function PlanificacionSemanal({
               )}
               <div className="max-h-[320px] space-y-1.5 overflow-y-auto">
                 {arrastreModal.talleres.map((t) => (
-                  <div key={t.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-[12.5px]">
+                  <div key={t.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-caption">
                     <span>
                       <span className="font-medium">{subName(t.subcontratistaId)}</span> — {t.esGeneral ? 'General' : `${t.edificio} ${t.unidad}`}
                       <span className="ml-1.5 text-muted-foreground">
@@ -1027,7 +1027,7 @@ export function PlanificacionSemanal({
             </div>
           )}
           <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
-            <Button variant="ghost" className="text-[12px]" onClick={() => confirmarArrastre(true)}>
+            <Button variant="ghost" className="text-caption" onClick={() => confirmarArrastre(true)}>
               Fue un error de semana — mover sin contar arrastre
             </Button>
             <div className="flex gap-2">
@@ -1047,11 +1047,11 @@ export function PlanificacionSemanal({
           <DialogHeader><DialogTitle>Confirmar importación de plantilla</DialogTitle></DialogHeader>
           {previewPlantilla && (
             <div className="space-y-3">
-              <div className="rounded-md bg-muted/40 p-3 text-[13px]">
+              <div className="rounded-md bg-muted/40 p-3 text-body">
                 Se detectaron <strong>{previewPlantilla.totalFilas}</strong> fila(s) en el archivo, de las cuales <strong>{previewPlantilla.talleres.length}</strong> se importarán como talleres en la semana del {weekRangeLabel(semanaActual)}.
               </div>
               {previewPlantilla.erroresFila.length > 0 && (
-                <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-[12.5px]">
+                <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-caption">
                   <div className="mb-1 flex items-center gap-1.5 font-medium text-destructive"><AlertTriangle size={14} />Filas con errores (no se importarán)</div>
                   <ul className="max-h-[140px] list-disc space-y-0.5 overflow-y-auto pl-4">
                     {previewPlantilla.erroresFila.map((e, i) => <li key={i}>Fila {e.fila}: {e.motivo}</li>)}
@@ -1059,7 +1059,7 @@ export function PlanificacionSemanal({
                 </div>
               )}
               {previewPlantilla.talleres.length > 0 && (
-                <div className="max-h-[160px] overflow-y-auto rounded-md border border-border text-[11.5px]">
+                <div className="max-h-[160px] overflow-y-auto rounded-md border border-border text-caption">
                   <table className="w-full">
                     <thead className="bg-muted/50">
                       <tr><th className="px-2 py-1 text-left">Edificio</th><th className="px-2 py-1 text-left">Unidad</th><th className="px-2 py-1 text-left">Actividad</th><th className="px-2 py-1 text-left">Día</th></tr>

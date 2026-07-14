@@ -97,7 +97,7 @@ export function TallerForm({ initial, subs, catalogo, unidadesProyecto, calendar
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
           <Label>Edificio / Villa / Townhouse</Label>
-          <Button type="button" size="sm" variant={f.esGeneral ? 'default' : 'outline'} className="h-6 px-2 text-[11px]" onClick={toggleGeneral}>
+          <Button type="button" size="sm" variant={f.esGeneral ? 'default' : 'outline'} className="h-6 px-2 text-micro" onClick={toggleGeneral}>
             <Building2 size={11} />General
           </Button>
         </div>
@@ -136,7 +136,7 @@ export function TallerForm({ initial, subs, catalogo, unidadesProyecto, calendar
           {actividadesSugeridas.map((a) => <option key={a} value={a} />)}
         </datalist>
         {estandarActividad && (
-          <div className="mt-1 text-[11px] text-muted-foreground">
+          <div className="mt-1 text-micro text-muted-foreground">
             Estándar: {estandarActividad.duracionEstandarDias} día(s) laborable(s){!!estandarActividad.holguraDias && ` +${estandarActividad.holguraDias} holgura`}.
             {fechaEsperada && <> Conclusión esperada: <strong>{fmtDate(fechaEsperada)}</strong> (desde el día planificado).</>}
           </div>
@@ -174,7 +174,7 @@ export function TallerForm({ initial, subs, catalogo, unidadesProyecto, calendar
       <div className="space-y-1.5">
         <Label>Fecha promesa</Label>
         <Input type="date" value={f.fechaPromesa} disabled={f.esGeneral} placeholder={f.esGeneral ? 'No aplica (general)' : undefined} onChange={(e) => upd('fechaPromesa', e.target.value)} />
-        {f.fechaPromesa && !f.esGeneral && <div className="text-[11px] text-muted-foreground">{fmtDate(f.fechaPromesa)}</div>}
+        {f.fechaPromesa && !f.esGeneral && <div className="text-micro text-muted-foreground">{fmtDate(f.fechaPromesa)}</div>}
       </div>
       <div className="space-y-1.5 sm:col-span-2">
         <Label>Observaciones</Label>

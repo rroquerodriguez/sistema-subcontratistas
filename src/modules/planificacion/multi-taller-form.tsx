@@ -131,7 +131,7 @@ export function MultiTallerForm({ subs, catalogo, unidadesProyecto, talleresExis
 
   return (
     <div>
-      <div className="mb-3 text-[12.5px] text-muted-foreground">
+      <div className="mb-3 text-caption text-muted-foreground">
         Completa las filas que necesites. Cada fila con subcontratista y unidad se guardará como un taller independiente, con su validación de liberación pendiente.
         {unidadesProyecto.length > 0 && ' La Vivienda y la Unidad vienen del reporte de unidades importado en el Dashboard; al elegir ambas se autocompleta proyecto, técnico, inspector de calidad, fecha promesa y prioridad sugerida (todo editable).'}
         {' Marca "General" cuando la actividad aplique a todo el edificio y no a una unidad específica (ej: pintura de fachada exterior).'}
@@ -140,26 +140,26 @@ export function MultiTallerForm({ subs, catalogo, unidadesProyecto, talleresExis
         {rows.map((r, idx) => (
           <div key={r.rowId} className={`rounded-lg border p-3 ${esDuplicado(r) ? 'border-destructive bg-destructive/5' : 'border-border'}`}>
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Taller #{idx + 1}</span>
+              <span className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">Taller #{idx + 1}</span>
               <Button size="icon" variant="outline" className="h-7 w-7 flex-shrink-0 text-destructive" onClick={() => removeRow(r.rowId)} aria-label="Quitar fila">
                 <X size={13} />
               </Button>
             </div>
             {esDuplicado(r) && (
-              <div className="mb-2 flex items-center gap-1.5 rounded-md bg-destructive/10 px-2 py-1 text-[11px] text-destructive">
+              <div className="mb-2 flex items-center gap-1.5 rounded-md bg-destructive/10 px-2 py-1 text-micro text-destructive">
                 <AlertTriangle size={12} />Ya existe un taller con esta unidad para este contratista.
               </div>
             )}
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-1">
-                <label className="text-[10.5px] font-medium text-muted-foreground">Subcontratista</label>
+                <label className="text-micro font-medium text-muted-foreground">Subcontratista</label>
                 <Select value={r.subcontratistaId} onValueChange={(v) => updRow(r.rowId, 'subcontratistaId', v)}>
                   <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                   <SelectContent>{subs.map((s) => <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10.5px] font-medium text-muted-foreground">Proyecto</label>
+                <label className="text-micro font-medium text-muted-foreground">Proyecto</label>
                 <Select value={r.proyecto} onValueChange={(v) => updRow(r.rowId, 'proyecto', v as Proyecto)}>
                   <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>{PROYECTOS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
@@ -167,10 +167,10 @@ export function MultiTallerForm({ subs, catalogo, unidadesProyecto, talleresExis
               </div>
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10.5px] font-medium text-muted-foreground">Edificio / Villa / Townhouse</label>
+                  <label className="text-micro font-medium text-muted-foreground">Edificio / Villa / Townhouse</label>
                   <Button
                     type="button" size="sm" variant={r.esGeneral ? 'default' : 'outline'}
-                    className="h-5 px-1.5 text-[10px]"
+                    className="h-5 px-1.5 text-micro"
                     onClick={() => toggleGeneral(r.rowId)}
                   >
                     <Building2 size={10} />General
@@ -186,7 +186,7 @@ export function MultiTallerForm({ subs, catalogo, unidadesProyecto, talleresExis
                 </datalist>
               </div>
               <div className="space-y-1">
-                <label className="text-[10.5px] font-medium text-muted-foreground">Unidad</label>
+                <label className="text-micro font-medium text-muted-foreground">Unidad</label>
                 {r.esGeneral ? (
                   <Input className="h-9 text-xs" placeholder="No aplica (general)" value="" disabled />
                 ) : (
@@ -203,7 +203,7 @@ export function MultiTallerForm({ subs, catalogo, unidadesProyecto, talleresExis
                 )}
               </div>
               <div className="space-y-1 sm:col-span-2">
-                <label className="text-[10.5px] font-medium text-muted-foreground">Actividad</label>
+                <label className="text-micro font-medium text-muted-foreground">Actividad</label>
                 <Input
                   className="h-9 text-xs" placeholder="Actividad" value={r.actividad}
                   list={`actividades-${r.rowId}`}
@@ -214,7 +214,7 @@ export function MultiTallerForm({ subs, catalogo, unidadesProyecto, talleresExis
                 </datalist>
               </div>
               <div className="space-y-1">
-                <label className="text-[10.5px] font-medium text-muted-foreground">Prioridad</label>
+                <label className="text-micro font-medium text-muted-foreground">Prioridad</label>
                 <Select value={r.prioridad} onValueChange={(v) => updRow(r.rowId, 'prioridad', v as Prioridad)}>
                   <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -225,14 +225,14 @@ export function MultiTallerForm({ subs, catalogo, unidadesProyecto, talleresExis
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10.5px] font-medium text-muted-foreground">Día</label>
+                <label className="text-micro font-medium text-muted-foreground">Día</label>
                 <Select value={r.dia} onValueChange={(v) => updRow(r.rowId, 'dia', v as DiaSemana)}>
                   <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>{DIAS_SEMANA.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10.5px] font-medium text-muted-foreground">Técnico asignado</label>
+                <label className="text-micro font-medium text-muted-foreground">Técnico asignado</label>
                 <Input
                   className="h-9 text-xs" placeholder={r.esGeneral ? 'No aplica (general)' : 'Técnico'} value={r.tecnico}
                   disabled={r.esGeneral}
@@ -240,7 +240,7 @@ export function MultiTallerForm({ subs, catalogo, unidadesProyecto, talleresExis
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10.5px] font-medium text-muted-foreground">Inspector de calidad</label>
+                <label className="text-micro font-medium text-muted-foreground">Inspector de calidad</label>
                 <Input
                   className="h-9 text-xs" placeholder={inspectoresUnicos.length ? 'Elegir o escribir...' : 'Inspector'} value={r.inspector}
                   list={`inspectores-${r.rowId}`}
@@ -251,14 +251,14 @@ export function MultiTallerForm({ subs, catalogo, unidadesProyecto, talleresExis
                 </datalist>
               </div>
               <div className="space-y-1">
-                <label className="text-[10.5px] font-medium text-muted-foreground">Fecha promesa</label>
+                <label className="text-micro font-medium text-muted-foreground">Fecha promesa</label>
                 <Input
                   className="h-9 text-xs" type="date" value={r.fechaPromesa}
                   disabled={r.esGeneral}
                   placeholder={r.esGeneral ? 'No aplica (general)' : undefined}
                   onChange={(e) => updRow(r.rowId, 'fechaPromesa', e.target.value)}
                 />
-                {r.fechaPromesa && !r.esGeneral && <div className="text-[10px] text-muted-foreground">{fmtDate(r.fechaPromesa)}</div>}
+                {r.fechaPromesa && !r.esGeneral && <div className="text-micro text-muted-foreground">{fmtDate(r.fechaPromesa)}</div>}
               </div>
               <div className="flex items-end">
                 <Button
