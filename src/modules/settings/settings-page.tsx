@@ -34,8 +34,8 @@ export function SettingsPage({ unidadesProyecto, setUnidadesProyecto, archivoMet
     <div>
       <Card>
         <CardContent className="p-5">
-          <div className="mb-1 text-[17px] font-semibold">Configuración</div>
-          <div className="mb-4 text-[12px] text-muted-foreground">Datos generales del sistema, información del proyecto, usuarios, y respaldo de información.</div>
+          <div className="mb-1 text-title font-semibold">Configuración</div>
+          <div className="mb-4 text-caption text-muted-foreground">Datos generales del sistema, información del proyecto, usuarios, y respaldo de información.</div>
 
           <Tabs defaultValue="general">
             <TabsList className="mb-4">
@@ -50,15 +50,15 @@ export function SettingsPage({ unidadesProyecto, setUnidadesProyecto, archivoMet
             <TabsContent value="general">
               <div className="space-y-4">
                 <div className="rounded-lg border border-border bg-muted/30 p-4">
-                  <div className="mb-1 text-[13.5px] font-medium">Sistema de Subcontratistas</div>
-                  <div className="text-[12.5px] text-muted-foreground">
+                  <div className="mb-1 text-body font-medium">Sistema de Subcontratistas</div>
+                  <div className="text-caption text-muted-foreground">
                     Gestión de unidad de entrega — Panorama Park y Panorama Garden. Esta sección reúne la configuración general del sistema:
                     datos del proyecto, usuarios y permisos, y el respaldo de toda la información.
                   </div>
                 </div>
                 <div className="rounded-lg border border-border p-4">
-                  <div className="mb-1 text-[13.5px] font-medium">Apariencia</div>
-                  <div className="mb-3 text-[12.5px] text-muted-foreground">
+                  <div className="mb-1 text-body font-medium">Apariencia</div>
+                  <div className="mb-3 text-caption text-muted-foreground">
                     Elige el tema de la interfaz. "Sistema" sigue automáticamente la configuración de tu dispositivo. Esta preferencia se guarda solo en este navegador.
                   </div>
                   <TemaToggle tema={tema} onChange={setTema} variante="completo" />

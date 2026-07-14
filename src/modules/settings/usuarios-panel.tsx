@@ -35,7 +35,7 @@ function PermisosEditor({ permisos, onChange }: { permisos: PermisosModulos; onC
     <div className="space-y-1.5">
       {MODULOS.map((m) => (
         <div key={m.id} className="flex items-center justify-between gap-2 rounded-md border border-border/70 px-2.5 py-1.5">
-          <span className="text-[12.5px]">{m.label}</span>
+          <span className="text-caption">{m.label}</span>
           <Select value={permisos[m.id] || 'ninguno'} onValueChange={(v) => onChange({ ...permisos, [m.id]: v as NivelAcceso })}>
             <SelectTrigger className="h-8 w-[140px] text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -125,7 +125,7 @@ export function UsuariosPanel({ miPerfilId, showToast }: UsuariosPanelProps) {
   return (
     <div>
       <div className="mb-3.5 flex items-center justify-between">
-        <div className="text-[13.5px] text-muted-foreground">{perfiles.length} usuario(s) registrado(s)</div>
+        <div className="text-body text-muted-foreground">{perfiles.length} usuario(s) registrado(s)</div>
         <Button onClick={abrirNuevo}><Plus size={14} />Nuevo usuario</Button>
       </div>
 
@@ -138,7 +138,7 @@ export function UsuariosPanel({ miPerfilId, showToast }: UsuariosPanelProps) {
         <TableBody>
           {perfiles.map((p) => (
             <TableRow key={p.id}>
-              <TableCell className="font-medium">{p.nombre}{p.id === miPerfilId && <span className="ml-1.5 text-[11px] text-muted-foreground">(tú)</span>}</TableCell>
+              <TableCell className="font-medium">{p.nombre}{p.id === miPerfilId && <span className="ml-1.5 text-micro text-muted-foreground">(tú)</span>}</TableCell>
               <TableCell>{p.rol === 'admin' ? <Badge><Shield size={11} className="mr-1" />Administrador</Badge> : <Badge variant="secondary">Usuario normal</Badge>}</TableCell>
               <TableCell>{p.activo ? <Badge variant="success">Activo</Badge> : <Badge variant="secondary">Desactivado</Badge>}</TableCell>
               <TableCell className="whitespace-nowrap text-right">
@@ -175,7 +175,7 @@ export function UsuariosPanel({ miPerfilId, showToast }: UsuariosPanelProps) {
                 <PermisosEditor permisos={permisos} onChange={setPermisos} />
               </div>
             )}
-            {errorForm && <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-[12.5px] text-destructive">{errorForm}</div>}
+            {errorForm && <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-caption text-destructive">{errorForm}</div>}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNew(false)}>Cancelar</Button>
@@ -198,7 +198,7 @@ export function UsuariosPanel({ miPerfilId, showToast }: UsuariosPanelProps) {
                   <SelectItem value="admin">Administrador (acceso total)</SelectItem>
                 </SelectContent>
               </Select>
-              {editing?.id === miPerfilId && <div className="text-[11px] text-muted-foreground">No puedes cambiar tu propio rol.</div>}
+              {editing?.id === miPerfilId && <div className="text-micro text-muted-foreground">No puedes cambiar tu propio rol.</div>}
             </div>
             {rol === 'normal' && (
               <div className="space-y-1.5">
@@ -206,7 +206,7 @@ export function UsuariosPanel({ miPerfilId, showToast }: UsuariosPanelProps) {
                 <PermisosEditor permisos={permisos} onChange={setPermisos} />
               </div>
             )}
-            {errorForm && <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-[12.5px] text-destructive">{errorForm}</div>}
+            {errorForm && <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-caption text-destructive">{errorForm}</div>}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
