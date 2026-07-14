@@ -7,6 +7,24 @@ module.exports = {
   ],
   theme: {
     extend: {
+      /* ------------------------------------------------------------------------------------------
+       * ESCALA TIPOGRÁFICA
+       * Seis pasos en `rem` (no px): así el texto respeta el ajuste de tamaño de letra del sistema
+       * — alguien que sube la letra en su teléfono sí ve el cambio. En px eso no ocurre.
+       *
+       * Cada paso trae su propio tracking y leading, porque ambos dependen del tamaño:
+       *  - Tracking: negativo al crecer (las letras se separan ópticamente en tamaños grandes),
+       *    positivo en micro-texto (mejora legibilidad en tamaños chicos). Un valor único está mal.
+       *  - Leading: apretado en títulos, holgado en cuerpo, ajustado en UI densa.
+       * ---------------------------------------------------------------------------------------- */
+      fontSize: {
+        micro: ['0.6875rem', { lineHeight: '1rem', letterSpacing: '0.02em' }],      // 11px — etiquetas, badges
+        caption: ['0.75rem', { lineHeight: '1.125rem', letterSpacing: '0.01em' }],  // 12px — texto auxiliar
+        body: ['0.8125rem', { lineHeight: '1.25rem', letterSpacing: '0' }],         // 13px — cuerpo de tablas/UI
+        base: ['0.875rem', { lineHeight: '1.375rem', letterSpacing: '0' }],         // 14px — cuerpo principal
+        title: ['1rem', { lineHeight: '1.375rem', letterSpacing: '-0.01em' }],      // 16px — títulos de sección
+        display: ['1.375rem', { lineHeight: '1.625rem', letterSpacing: '-0.02em' }], // 22px — cifras KPI, encabezados
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
