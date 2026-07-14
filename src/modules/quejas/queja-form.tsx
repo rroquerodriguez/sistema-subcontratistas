@@ -111,20 +111,20 @@ export function QuejaForm({ initial, subs, talleres, validaciones, entregas, pre
         <Label>Unidades afectadas</Label>
         <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2">
           <Checkbox id="esGeneral" checked={f.esGeneral} onCheckedChange={(c) => toggleGeneral(!!c)} />
-          <label htmlFor="esGeneral" className="text-[13px]">Marcar como general (afecta todos los talleres de este contratista, no unidades específicas)</label>
+          <label htmlFor="esGeneral" className="text-body">Marcar como general (afecta todos los talleres de este contratista, no unidades específicas)</label>
         </div>
 
         {!f.esGeneral && (
           <div className="mt-2">
             {!f.subcontratistaId ? (
-              <div className="rounded-md border border-border px-3 py-2 text-[12.5px] text-muted-foreground">Selecciona primero un subcontratista.</div>
+              <div className="rounded-md border border-border px-3 py-2 text-caption text-muted-foreground">Selecciona primero un subcontratista.</div>
             ) : (
               <>
                 <div className="mb-2">
                   <ProjectFilter value={filtroProyectoUnidad} onChange={setFiltroProyectoUnidad} className="h-8 w-[180px] text-xs" />
                 </div>
                 {unidadesDisponibles.length === 0 ? (
-                  <div className="rounded-md border border-border px-3 py-2 text-[12.5px] text-muted-foreground">Este subcontratista no tiene talleres pendientes de completar{filtroProyectoUnidad !== 'todos' ? ' en este proyecto' : ''}.</div>
+                  <div className="rounded-md border border-border px-3 py-2 text-caption text-muted-foreground">Este subcontratista no tiene talleres pendientes de completar{filtroProyectoUnidad !== 'todos' ? ' en este proyecto' : ''}.</div>
                 ) : (
                   <div className="grid max-h-[160px] grid-cols-1 gap-1.5 overflow-y-auto rounded-md border border-border p-2 sm:grid-cols-2">
                     {unidadesDisponibles.map((u) => (
@@ -134,7 +134,7 @@ export function QuejaForm({ initial, subs, talleres, validaciones, entregas, pre
                           checked={f.unidadesAfectadas.includes(u.key)}
                           onCheckedChange={() => toggleUnidad(u.key)}
                         />
-                        <label htmlFor={`u-${u.key}`} className="text-[12.5px]">{u.label}</label>
+                        <label htmlFor={`u-${u.key}`} className="text-caption">{u.label}</label>
                       </div>
                     ))}
                   </div>

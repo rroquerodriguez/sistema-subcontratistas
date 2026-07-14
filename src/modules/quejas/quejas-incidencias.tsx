@@ -79,7 +79,7 @@ function IncidenciasTabla({ list, onEdit, onRemove, onViewPhotos, soloLectura }:
             <TableCell className="max-w-[260px] text-xs">{q.descripcion || '—'}</TableCell>
             <TableCell><Badge variant="secondary">{q.causa || '—'}</Badge></TableCell>
             <TableCell>{q.esGeneral ? <Badge variant="secondary">General</Badge> : (q.unidades || '—')}</TableCell>
-            <TableCell className="text-[11.5px] text-muted-foreground" title={q.registradoEn ? fmtDateTime(q.registradoEn) : ''}>{q.registradoPor || '—'}</TableCell>
+            <TableCell className="text-caption text-muted-foreground" title={q.registradoEn ? fmtDateTime(q.registradoEn) : ''}>{q.registradoPor || '—'}</TableCell>
             <TableCell>{q.fotos.length ? <Button size="sm" variant="outline" onClick={() => onViewPhotos(q.fotos)}>{q.fotos.length} foto(s)</Button> : '—'}</TableCell>
             <TableCell className="whitespace-nowrap">
               <Button size="icon" variant="outline" className="mr-1.5 h-8 w-8" onClick={() => onEdit(q)} aria-label="Editar" disabled={soloLectura}><Pencil size={14} /></Button>
@@ -159,11 +159,11 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
     <div>
       <Card>
         <CardContent className="p-5">
-          <div className="mb-1 text-[17px] font-semibold">Registro de incidencias</div>
-          <div className="mb-4 text-[12px] text-muted-foreground">Historial de ocurrencias por subcontratista: qué pasó, cuándo, y a qué unidades afectó.</div>
+          <div className="mb-1 text-title font-semibold">Registro de incidencias</div>
+          <div className="mb-4 text-caption text-muted-foreground">Historial de ocurrencias por subcontratista: qué pasó, cuándo, y a qué unidades afectó.</div>
 
           <div className="mb-3.5 flex items-center justify-between">
-            <span className="text-[15.5px] font-medium">Incidencias ({sorted.length})</span>
+            <span className="text-title font-medium">Incidencias ({sorted.length})</span>
             <div className="flex gap-2">
               <ColumnSelector seleccionadas={columnasExport} onChange={setColumnasExport} columnas={COLUMNAS_QUEJA} />
               <ExportarButton
