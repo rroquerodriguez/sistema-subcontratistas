@@ -207,7 +207,7 @@ export function Dashboard({ subs, talleres: talleresTodos, validaciones, entrega
                       <div className="text-[13px] font-medium">{sub.nombre}</div>
                       <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
                         <div
-                          className="h-full rounded-full transition-all"
+                          className="h-full rounded-full transition-[width] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]"
                           style={{
                             width: `${s.pctCumplimiento}%`,
                             background: s.pctCumplimiento >= 90 ? 'hsl(142 71% 40%)' : s.pctCumplimiento >= 70 ? 'hsl(38 92% 45%)' : 'hsl(0 70% 50%)',
