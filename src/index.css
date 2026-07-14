@@ -87,6 +87,66 @@
 }
 
 /* ------------------------------------------------------------------------------------------------
+ * MATERIALES — CHROME FLOTANTE TRANSLÚCIDO
+ * La barra de navegación no es una franja opaca que le come espacio al contenido: es una capa que
+ * FLOTA sobre él. La translucidez comunica esa relación — se intuye que hay contenido debajo.
+ *
+ * El borde superior claro simula la luz pegando en el canto del material (el detalle que hace que
+ * lea como vidrio y no como un rectángulo semitransparente).
+ *
+ * Se aplica SOLO aquí: backdrop-filter es caro en GPU y en un teléfono de gama media en obra no
+ * vale la pena pagarlo en tablas o tarjetas, donde además no hay nada que se vea "a través".
+ * ---------------------------------------------------------------------------------------------- */
+.nav-material {
+  background-color: hsl(204 19% 26% / 0.82);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid hsl(0 0% 100% / 0.14);
+}
+
+/* ------------------------------------------------------------------------------------------------
+ * SCROLL EDGE EFFECT
+ * En vez de una línea dura de 1px bajo el encabezado fijo, el contenido se DESVANECE al pasar por
+ * debajo. Un divisor duro corta; un desvanecido comunica continuidad — el contenido sigue ahí,
+ * simplemente pasa bajo la capa flotante.
+ * ---------------------------------------------------------------------------------------------- */
+.sticky-edge::after {
+  content: '';
+  position: absolute;
+  inset: 100% 0 auto 0;
+  height: 10px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, hsl(var(--background)), hsl(var(--background) / 0));
+}
+
+@layer base {
+  /* --------------------------------------------------------------------------------------------
+   * TRANSPARENCIA REDUCIDA (accesibilidad)
+   * Si el usuario pidió menos transparencia en su sistema, la barra se vuelve sólida: sube la
+   * opacidad del fondo y se retira el desenfoque. La translucidez es un lujo; la legibilidad no.
+   * ------------------------------------------------------------------------------------------ */
+  @media (prefers-reduced-transparency: reduce) {
+    .nav-material {
+      background-color: hsl(204 19% 26%);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+  }
+
+  /* --------------------------------------------------------------------------------------------
+   * CONTRASTE ALTO (accesibilidad): fondo sólido y borde definido.
+   * ------------------------------------------------------------------------------------------ */
+  @media (prefers-contrast: more) {
+    .nav-material {
+      background-color: hsl(204 19% 20%);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border-top: 2px solid hsl(0 0% 100% / 0.5);
+    }
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------
  * FEEDBACK DE PRESIÓN
  * Un botón que no reacciona al presionarse no confirma que la interfaz "escuchó" al usuario. El
  * scale sutil al presionar es el detalle invisible de mayor impacto: nadie lo nota conscientemente,
