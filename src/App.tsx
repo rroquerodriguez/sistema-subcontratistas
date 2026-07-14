@@ -210,7 +210,7 @@ function App() {
       <main className="flex-1 overflow-x-hidden p-4 pb-[calc(64px+env(safe-area-inset-bottom))] md:p-6 md:pb-6">
         <div className="mx-auto max-w-[1800px]">
           {!enLinea && (
-            <div className="no-print mb-4 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-[13px] leading-relaxed">
+            <div className="no-print mb-4 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-body leading-relaxed">
               <strong>Sin conexión a internet.</strong> Los cambios que hagas ahora <strong>no se guardarán</strong> hasta que
               se restablezca la señal. Evita capturar información importante hasta reconectarte.
             </div>
@@ -218,14 +218,14 @@ function App() {
           {clavesFallidas.length > 0 && (
             <div className="no-print mb-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3">
               <div className="flex flex-wrap items-center justify-between gap-2.5">
-                <div className="text-[13px] leading-relaxed">
+                <div className="text-body leading-relaxed">
                   <strong>Protección de datos activa:</strong> no se pudieron cargar {clavesFallidas.map(nombreClave).join(', ')}.
                   {' '}Para evitar sobrescribir información real con datos incompletos, <strong>el guardado en esos módulos está bloqueado</strong> hasta que la carga se complete. Verifica tu conexión a internet.
                 </div>
                 <button
                   onClick={reintentarCarga}
                   disabled={recargando}
-                  className="rounded-md bg-destructive px-3.5 py-1.5 text-[12.5px] font-medium text-destructive-foreground hover:opacity-90 disabled:opacity-60"
+                  className="rounded-md bg-destructive px-3.5 py-1.5 text-caption font-medium text-destructive-foreground hover:opacity-90 disabled:opacity-60"
                 >
                   {recargando ? 'Recargando…' : 'Reintentar carga'}
                 </button>
