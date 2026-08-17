@@ -5,30 +5,32 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { SubAvatar } from '@/components/shared/sub-avatar';
 import { PhotoViewer } from '@/components/shared/photo-viewer';
 import { ProjectFilter } from '@/components/shared/project-filter';
 import { CollapsibleGroup } from '@/components/shared/collapsible-group';
+import { ResponsiveDialog } from '@/components/shared/responsive-dialog';
+import { ExpandCollapseAllButtons } from '@/components/shared/expand-collapse-all-button';
+import { ViewTabs } from '@/components/shared/view-tabs';
+import { NivelCollapseControls } from '@/components/shared/nivel-collapse-controls';
+import { useCollapseState } from '@/lib/use-collapse-state';
 import { SortableTableHead } from '@/components/shared/sortable-table-head';
 import { useSortableFilterableTable, type ColumnConfig } from '@/lib/use-sortable-table';
 import { UnidadSearchBox, unidadMatchesSearch } from '@/components/shared/unidad-search-box';
 import { AgrupacionConfigButton, type OpcionAgrupacion } from '@/components/shared/agrupacion-config-button';
-import { ViewTabs } from '@/components/shared/view-tabs';
 import { ArbolAgrupado } from '@/components/shared/arbol-agrupado';
-import { construirArbolAgrupado, type DimensionAgrupacion } from '@/lib/agrupacion-multinivel';
-import { useExpandCollapseState } from '@/lib/use-expand-collapse-state';
-import { ExpandCollapseToolbar } from '@/components/shared/expand-collapse-toolbar';
+import { construirArbolAgrupado, todasLasKeysAgrupables, keysPorNivel, type DimensionAgrupacion } from '@/lib/agrupacion-multinivel';
 import { ExportarButton } from '@/components/shared/exportar-button';
 import { useUsuarioActual } from '@/lib/usuario-actual-context';
 import { puedeEditar } from '@/lib/auth';
 import { QuejaForm } from './queja-form';
-import { dbSet } from '@/lib/storage';
+
 import { fmtDate, fmtDateTime } from '@/lib/utils-app';
 import { exportQuejasExcel, COLUMNAS_QUEJA, COLUMNAS_QUEJA_DEFAULT } from '@/lib/export-quejas-excel';
 import { exportQuejasPDF } from '@/lib/export-quejas-pdf';
 import { ColumnSelector } from '@/components/shared/column-selector';
 import type { Subcontratista, Queja, Taller, Validacion, Entrega } from '@/types';
+import { persistir } from '@/lib/persistir';
 
 interface QuejasIncidenciasProps {
   subs: Subcontratista[];
@@ -44,28 +46,7 @@ const OPCIONES_AGRUPACION_INCIDENCIAS: OpcionAgrupacion[] = [
   { key: 'contratista', label: 'Subcontratista' },
   { key: 'tipo', label: 'Tipo' },
   { key: 'causa', label: 'Causa' },
-  { key: 'inspector', label: 'Inspector de calidad' },
 ];
-
-/** Un incidencia no guarda tallerId directo, solo subcontratistaId + unidades afectadas como texto.
- * Estos helpers derivan el/los inspector(es) relacionados buscando en los talleres del mismo
- * subcontratista que coincidan con esas unidades (o todos, si la incidencia es general). */
-function talleresRelevantesDeQueja(q: Queja, talleres: Taller[]): Taller[] {
-  const talleresDelSub = talleres.filter((t) => t.subcontratistaId === q.subcontratistaId);
-  if (q.esGeneral) return talleresDelSub;
-  return talleresDelSub.filter((t) => q.unidadesAfectadas.includes(`${t.edificio} ${t.unidad}`.trim()));
-}
-
-function inspectorLabelDeQueja(q: Queja, talleres: Taller[]): string {
-  const inspectores = [...new Set(talleresRelevantesDeQueja(q, talleres).map((t) => t.inspector).filter(Boolean))];
-  if (inspectores.length === 0) return 'Sin inspector';
-  if (inspectores.length === 1) return inspectores[0];
-  return 'Varios';
-}
-
-function quejaTieneInspector(q: Queja, talleres: Taller[], inspector: string): boolean {
-  return talleresRelevantesDeQueja(q, talleres).some((t) => t.inspector === inspector);
-}
 
 function IncidenciasTabla({ list, onEdit, onRemove, onViewPhotos, soloLectura }: { list: Queja[]; onEdit: (q: Queja) => void; onRemove: (id: string) => void; onViewPhotos: (fotos: string[]) => void; soloLectura?: boolean }) {
   const columnas: ColumnConfig<Queja>[] = [
@@ -80,7 +61,7 @@ function IncidenciasTabla({ list, onEdit, onRemove, onViewPhotos, soloLectura }:
 
   return (
     <Table>
-      <TableHeader>
+      <TableHeader sticky>
         <TableRow>
           <SortableTableHead label="Fecha" columnKey="fecha" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterable={false} />
           <SortableTableHead label="Tipo" columnKey="tipo" sortKey={sortKey} sortDir={sortDir} onToggleSort={toggleSort} filterValue={filters.tipo} onFilterChange={setFilter} />
@@ -99,7 +80,7 @@ function IncidenciasTabla({ list, onEdit, onRemove, onViewPhotos, soloLectura }:
             <TableCell className="max-w-[260px] text-xs">{q.descripcion || '—'}</TableCell>
             <TableCell><Badge variant="secondary">{q.causa || '—'}</Badge></TableCell>
             <TableCell>{q.esGeneral ? <Badge variant="secondary">General</Badge> : (q.unidades || '—')}</TableCell>
-            <TableCell className="text-[11.5px] text-muted-foreground" title={q.registradoEn ? fmtDateTime(q.registradoEn) : ''}>{q.registradoPor || '—'}</TableCell>
+            <TableCell className="text-caption text-muted-foreground" title={q.registradoEn ? fmtDateTime(q.registradoEn) : ''}>{q.registradoPor || '—'}</TableCell>
             <TableCell>{q.fotos.length ? <Button size="sm" variant="outline" onClick={() => onViewPhotos(q.fotos)}>{q.fotos.length} foto(s)</Button> : '—'}</TableCell>
             <TableCell className="whitespace-nowrap">
               <Button size="icon" variant="outline" className="mr-1.5 h-8 w-8" onClick={() => onEdit(q)} aria-label="Editar" disabled={soloLectura}><Pencil size={14} /></Button>
@@ -121,19 +102,19 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
   const [filtroSub, setFiltroSub] = useState('todos');
   const [filtroProyecto, setFiltroProyecto] = useState('todos');
   const [buscadorUnidad, setBuscadorUnidad] = useState('');
-  const [filtroInspector, setFiltroInspector] = useState('todos');
   const [nivelesAgrupacion, setNivelesAgrupacion] = useState<string[]>([]);
   const [vista, setVista] = useState<'contratista' | 'personalizada'>('contratista');
   const [columnasExport, setColumnasExport] = useState<string[]>(COLUMNAS_QUEJA_DEFAULT);
   const subName = (id: string) => subs.find((s) => s.id === id)?.nombre || '—';
-  const expandControles = useExpandCollapseState();
+  const colapsoContratista = useCollapseState();
+  const colapsoPersonalizada = useCollapseState();
 
   const save = async (q: Queja) => {
     const existing = quejas.find((x) => x.id === q.id);
     const registro = existing ? q : { ...q, registradoPor: usuario.nombre, registradoPorId: usuario.id, registradoEn: new Date().toISOString() };
     const next = existing ? quejas.map((x) => (x.id === q.id ? registro : x)) : [...quejas, registro];
     setQuejas(next);
-    await dbSet('quejas', next);
+    if (!(await persistir('quejas', next))) return;
     setShowNew(false);
     setEditing(null);
     showToast('Incidencia guardada');
@@ -143,7 +124,7 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
     if (!confirm('¿Eliminar esta incidencia?')) return;
     const next = quejas.filter((x) => x.id !== id);
     setQuejas(next);
-    await dbSet('quejas', next);
+    if (!(await persistir('quejas', next))) return;
     showToast('Incidencia eliminada');
   };
 
@@ -155,15 +136,7 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
   if (buscadorUnidad.trim()) {
     filtered = filtered.filter((q) => q.esGeneral || unidadMatchesSearch('', q.unidades, buscadorUnidad));
   }
-  if (filtroInspector !== 'todos') {
-    filtered = filtered.filter((q) => quejaTieneInspector(q, talleres, filtroInspector));
-  }
   const sorted = [...filtered].sort((a, b) => b.fecha.localeCompare(a.fecha));
-
-  const inspectoresDisponibles = useMemo(
-    () => [...new Set(talleres.map((t) => t.inspector).filter(Boolean))].sort(),
-    [talleres]
-  );
 
   const grouped = useMemo(() => {
     const map: Record<string, Queja[]> = {};
@@ -175,25 +148,32 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
     contratista: { key: 'contratista', label: 'Subcontratista', getValue: (q) => subName(q.subcontratistaId) },
     tipo: { key: 'tipo', label: 'Tipo', getValue: (q) => q.tipo },
     causa: { key: 'causa', label: 'Causa', getValue: (q) => q.causa || 'Sin causa' },
-    inspector: { key: 'inspector', label: 'Inspector de calidad', getValue: (q) => inspectorLabelDeQueja(q, talleres) },
   };
   const arbolPersonalizado = useMemo(() => {
     const dims = nivelesAgrupacion.map((k) => dimensionesDisponibles[k]).filter(Boolean);
     return construirArbolAgrupado(sorted, dims);
   }, [sorted, nivelesAgrupacion]);
+  const keysPorNivelPersonalizada = useMemo(() => keysPorNivel(arbolPersonalizado), [arbolPersonalizado]);
+  const nivelesConLabel = nivelesAgrupacion.map((k, i) => ({ label: dimensionesDisponibles[k]?.label || k, keys: keysPorNivelPersonalizada[i] || [] }));
 
   return (
     <div>
       <Card>
         <CardContent className="p-5">
-          <div className="mb-1 text-[17px] font-semibold">Registro de incidencias</div>
-          <div className="mb-4 text-[12px] text-muted-foreground">Historial de ocurrencias por subcontratista: qué pasó, cuándo, y a qué unidades afectó.</div>
+          <div className="mb-1 text-title font-semibold">Registro de incidencias</div>
+          <div className="mb-4 text-caption text-muted-foreground">Historial de ocurrencias por subcontratista: qué pasó, cuándo, y a qué unidades afectó.</div>
 
           <div className="mb-3.5 flex items-center justify-between">
-            <span className="text-[15.5px] font-medium">Incidencias ({sorted.length})</span>
-            <Button onClick={() => setShowNew(true)} disabled={soloLectura}><Plus size={14} />Nueva incidencia</Button>
+            <span className="text-title font-medium">Incidencias ({sorted.length})</span>
+            <div className="flex gap-2">
+              <ColumnSelector seleccionadas={columnasExport} onChange={setColumnasExport} columnas={COLUMNAS_QUEJA} />
+              <ExportarButton
+                onExcel={() => exportQuejasExcel(filtered, subs, filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null, columnasExport)}
+                onPDF={() => exportQuejasPDF(filtered, subs, filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null)}
+              />
+              <Button onClick={() => setShowNew(true)} disabled={soloLectura}><Plus size={14} />Nueva incidencia</Button>
+            </div>
           </div>
-
           <ViewTabs
             value={vista}
             onChange={setVista}
@@ -203,48 +183,41 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
             ]}
           />
 
-          <div className="mb-3.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5">
-            <div className="flex min-w-[280px] flex-1 flex-wrap items-center gap-2">
-              <UnidadSearchBox value={buscadorUnidad} onChange={setBuscadorUnidad} />
-              <ProjectFilter value={filtroProyecto} onChange={setFiltroProyecto} />
-              <Select value={filtroSub} onValueChange={setFiltroSub}>
-                <SelectTrigger className="h-9 w-[200px] text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos los subcontratistas</SelectItem>
-                  {subs.map((s) => <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={filtroInspector} onValueChange={setFiltroInspector}>
-                <SelectTrigger className="h-9 w-[180px] text-xs"><SelectValue placeholder="Inspector" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos los inspectores</SelectItem>
-                  {inspectoresDisponibles.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              {vista === 'personalizada' && (
-                <AgrupacionConfigButton opciones={OPCIONES_AGRUPACION_INCIDENCIAS} seleccion={nivelesAgrupacion} onChange={setNivelesAgrupacion} />
-              )}
-              <ExpandCollapseToolbar
-                controles={expandControles}
-                niveles={vista === 'personalizada' ? nivelesAgrupacion.map((k, i) => ({ nivel: i, label: OPCIONES_AGRUPACION_INCIDENCIAS.find((o) => o.key === k)?.label || k })) : undefined}
-              />
-            </div>
-            <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
-              <ColumnSelector seleccionadas={columnasExport} onChange={setColumnasExport} columnas={COLUMNAS_QUEJA} />
-              <ExportarButton
-                onExcel={() => exportQuejasExcel(filtered, subs, filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null, columnasExport)}
-                onPDF={() => exportQuejasPDF(filtered, subs, filtroSub === 'todos' ? null : subs.find((s) => s.id === filtroSub) || null)}
-              />
-            </div>
+          <div className="mb-3.5 flex flex-wrap items-center gap-2">
+            <UnidadSearchBox value={buscadorUnidad} onChange={setBuscadorUnidad} />
+            <ProjectFilter value={filtroProyecto} onChange={setFiltroProyecto} />
+            <Select value={filtroSub} onValueChange={setFiltroSub}>
+              <SelectTrigger className="max-w-[220px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los subcontratistas</SelectItem>
+                {subs.map((s) => <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {vista === 'personalizada' && (
+              <AgrupacionConfigButton opciones={OPCIONES_AGRUPACION_INCIDENCIAS} seleccion={nivelesAgrupacion} onChange={setNivelesAgrupacion} />
+            )}
+            {vista === 'contratista' && (
+              <ExpandCollapseAllButtons onExpandAll={colapsoContratista.expandAll} onCollapseAll={() => colapsoContratista.collapseAll(Object.keys(grouped))} />
+            )}
+            {vista === 'personalizada' && (
+              <ExpandCollapseAllButtons onExpandAll={colapsoPersonalizada.expandAll} onCollapseAll={() => colapsoPersonalizada.collapseAll(todasLasKeysAgrupables(arbolPersonalizado))} />
+            )}
           </div>
+
+          {vista === 'personalizada' && nivelesConLabel.length > 0 && (
+            <div className="mb-3.5">
+              <NivelCollapseControls niveles={nivelesConLabel} onCollapseKeys={colapsoPersonalizada.collapseKeys} onExpandKeys={colapsoPersonalizada.expandKeys} />
+            </div>
+          )}
 
           {vista === 'contratista' && (
             <>
               {Object.keys(grouped).length === 0 && <div className="py-10 text-center text-sm text-muted-foreground">No hay incidencias registradas.</div>}
               {Object.entries(grouped).map(([subId, list]) => (
                 <CollapsibleGroup
-                  key={`${subId}-v${expandControles.porNivel[0]?.version ?? 0}`}
-                  defaultOpen={expandControles.porNivel[0]?.open ?? true}
+                  key={subId}
+                  open={!colapsoContratista.isCollapsed(subId)}
+                  onToggle={() => colapsoContratista.toggle(subId)}
                   header={
                     <div className="flex items-center gap-2">
                       <SubAvatar name={subName(subId)} id={subId} />
@@ -262,26 +235,21 @@ export function QuejasIncidencias({ subs, talleres, validaciones, entregas, quej
           {vista === 'personalizada' && (
             <ArbolAgrupado
               nodos={arbolPersonalizado}
-              expandPorNivel={expandControles.porNivel}
+              isCollapsed={colapsoPersonalizada.isCollapsed}
+              onToggle={colapsoPersonalizada.toggle}
               renderHoja={(items) => <IncidenciasTabla list={items} onEdit={setEditing} onRemove={remove} onViewPhotos={setViewPhotos} soloLectura={soloLectura} />}
             />
           )}
         </CardContent>
       </Card>
 
-      <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Nueva incidencia</DialogTitle></DialogHeader>
-          <QuejaForm subs={subs} talleres={talleres} validaciones={validaciones} entregas={entregas} preselectSub={filtroSub !== 'todos' ? filtroSub : undefined} onSave={save} onCancel={() => setShowNew(false)} />
-        </DialogContent>
-      </Dialog>
+      <ResponsiveDialog open={showNew} onOpenChange={setShowNew} title="Nueva incidencia">
+        <QuejaForm subs={subs} talleres={talleres} validaciones={validaciones} entregas={entregas} preselectSub={filtroSub !== 'todos' ? filtroSub : undefined} onSave={save} onCancel={() => setShowNew(false)} />
+      </ResponsiveDialog>
 
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Editar incidencia</DialogTitle></DialogHeader>
-          {editing && <QuejaForm subs={subs} talleres={talleres} validaciones={validaciones} entregas={entregas} initial={editing} onSave={save} onCancel={() => setEditing(null)} />}
-        </DialogContent>
-      </Dialog>
+      <ResponsiveDialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)} title="Editar incidencia">
+        {editing && <QuejaForm subs={subs} talleres={talleres} validaciones={validaciones} entregas={entregas} initial={editing} onSave={save} onCancel={() => setEditing(null)} />}
+      </ResponsiveDialog>
 
       <PhotoViewer photos={viewPhotos} onClose={() => setViewPhotos(null)} title="Fotos / capturas" />
     </div>
