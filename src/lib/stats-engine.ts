@@ -1,5 +1,5 @@
 import type { Taller, Validacion, Entrega, RegistroBitacora, Queja, Stats, TallerDetail, Subcontratista, CicloTaller, FechaPrometida } from '@/types';
-import { diffDays, mondayOf, todayISO, fmtDate, fechaDeISODia } from './utils-app';
+import { diffDays, mondayOf, todayISO, fmtDate, semanasDelMes } from './utils-app';
 
 export interface TallerDetailExt extends TallerDetail {
   quejasAsociadas: Queja[];
@@ -8,36 +8,7 @@ export interface TallerDetailExt extends TallerDetail {
   fechasAsociadas: FechaPrometida[];
 }
 
-/** Filtro de periodo para las estadísticas:
- * - null = todas las semanas
- * - 'YYYY-MM-DD' (lunes ISO) = una semana concreta
- * - string[] = varias semanas concretas
- * - 'mes:YYYY-MM' = un mes calendario, por FECHA REAL (convención acordada: cada taller cuenta en el
- *   mes de su fecha real —semana + día—, no en el de su semana completa; así una semana que cruza de
- *   mes queda repartida entre ambos y ningún taller se cuenta doble). */
-export type PeriodoFiltro = string | string[] | null;
-
-const mesDelFiltro = (p: PeriodoFiltro): string | null =>
-  typeof p === 'string' && p.startsWith('mes:') ? p.slice(4) : null;
-
-/** Fecha real (YYYY-MM-DD) de un taller: el día concreto dentro de su semana planificada */
-export function fechaRealTaller(t: Taller): string {
-  return fechaDeISODia(t.semana, t.dia);
-}
-
-/** ¿El taller pertenece al periodo? Para meses aplica la convención de fecha real (ver PeriodoFiltro). */
-export function tallerEnPeriodo(t: Taller, periodo: PeriodoFiltro): boolean {
-  const mes = mesDelFiltro(periodo);
-  if (mes) return fechaRealTaller(t).slice(0, 7) === mes;
-  return semanaMatch(t.semana, periodo);
-}
-
-/** ¿El taller pertenece a este mes calendario (por su fecha real)? */
-export function tallerEnMes(t: Taller, mesKey: string): boolean {
-  return fechaRealTaller(t).slice(0, 7) === mesKey;
-}
-
-/** Normaliza el filtro de semana(s): null = todas, string = una semana, string[] = varias */
+/** Normaliza el filtro de semana(s): null = todas, string = una semana, string[] = varias (vista mensual) */
 function semanaMatch(tallerSemana: string, semana: string | string[] | null): boolean {
   if (!semana) return true;
   if (Array.isArray(semana)) return semana.includes(tallerSemana);
@@ -61,7 +32,7 @@ export function talleresAtrasados(
 
 export function computeStats(
   subId: string | null,
-  semana: PeriodoFiltro,
+  semana: string | string[] | null,
   talleres: Taller[],
   validaciones: Validacion[],
   entregas: Entrega[],
@@ -69,7 +40,7 @@ export function computeStats(
   quejas: Queja[]
 ): Stats {
   const tIds = talleres
-    .filter((t) => tallerEnPeriodo(t, semana) && (!subId || t.subcontratistaId === subId))
+    .filter((t) => semanaMatch(t.semana, semana) && (!subId || t.subcontratistaId === subId))
     .map((t) => t.id);
   const tSet = new Set(tIds);
   const totalTalleres = tIds.length;
@@ -98,12 +69,10 @@ export function computeStats(
   const causaNuestra = bitForWeek.filter((b) => b.responsable === 'Nuestro (taller no listo)').length;
   const causaSub = bitForWeek.filter((b) => b.responsable === 'Subcontratista').length;
 
-  const mesFiltro = mesDelFiltro(semana);
   const semanasSet = Array.isArray(semana) ? new Set(semana) : null;
   const quejasForSub = quejas.filter((q) => {
     if (subId && q.subcontratistaId !== subId) return false;
     if (!semana) return true;
-    if (mesFiltro) return q.fecha.slice(0, 7) === mesFiltro;
     const qSemana = mondayOf(q.fecha);
     return semanasSet ? semanasSet.has(qSemana) : qSemana === semana;
   });
@@ -119,9 +88,7 @@ export function computeStats(
   };
 }
 
-/** Stats acumulados de un mes calendario. Convención: cada taller cuenta en el mes de su FECHA REAL
- * (semana + día), no en el de su semana completa — así las semanas que cruzan de mes quedan repartidas
- * entre ambos meses y ningún taller se cuenta doble. */
+/** Stats acumulados de un mes completo, sumando todas las semanas que tocan ese mes */
 export function computeStatsMensual(
   subId: string | null,
   mesKey: string,
@@ -131,7 +98,8 @@ export function computeStatsMensual(
   bitacora: RegistroBitacora[],
   quejas: Queja[]
 ): Stats {
-  return computeStats(subId, `mes:${mesKey}`, talleres, validaciones, entregas, bitacora, quejas);
+  const semanas = semanasDelMes(mesKey);
+  return computeStats(subId, semanas, talleres, validaciones, entregas, bitacora, quejas);
 }
 
 /** Historial completo de incidencias de un contratista, sin filtrar por semana (para ver todo su histórico) */
@@ -143,13 +111,13 @@ export function historialIncidenciasContratista(subId: string | null, quejas: Qu
 
 export function tallerDetailList(
   subId: string | null,
-  semana: PeriodoFiltro,
+  semana: string | string[] | null,
   talleres: Taller[],
   validaciones: Validacion[],
   entregas: Entrega[],
   bitacora: RegistroBitacora[]
 ): TallerDetail[] {
-  const mine = talleres.filter((t) => tallerEnPeriodo(t, semana) && (!subId || t.subcontratistaId === subId));
+  const mine = talleres.filter((t) => semanaMatch(t.semana, semana) && (!subId || t.subcontratistaId === subId));
   return mine.map((t) => {
     const validacion = validaciones.find((v) => v.tallerId === t.id);
     const entrega = entregas.find((e) => e.tallerId === t.id);
@@ -267,7 +235,7 @@ export function buildComentarioTaller(detail: TallerDetail, quejasAsociadas: Que
 
 export function tallerDetailListExt(
   subId: string | null,
-  semana: PeriodoFiltro,
+  semana: string | string[] | null,
   talleres: Taller[],
   validaciones: Validacion[],
   entregas: Entrega[],
@@ -531,35 +499,31 @@ export function buildParrafoAnalisisBitacora(sub: Subcontratista | null, registr
 // ===================== FECHAS PROMETIDAS =====================
 
 /** Calcula los días de atraso de una fecha prometida respecto a hoy (o a la fecha de cumplimiento si ya se cumplió) */
+/** Devuelve la primera fecha que se prometió alguna vez para este compromiso (antes de cualquier
+ * modificación posterior). Si nunca se ha modificado, es la misma fecha vigente. */
+export function fechaOriginalPrometida(fp: FechaPrometida): string {
+  return fp.historialFechas.length ? fp.historialFechas[0].fecha : fp.fechaPrometidaActual;
+}
+
+/** Días de atraso ACUMULADOS: se calculan siempre desde la fecha ORIGINALMENTE prometida, no
+ * desde la fecha vigente actual. Esto evita que mover una fecha varias veces "reinicie" el
+ * contador — el atraso real frente al primer compromiso queda visible sin importar cuántas
+ * prórrogas haya habido después. Este es el número que se usa en toda la app como "atraso". */
 export function diasAtrasoFechaPrometida(fp: FechaPrometida): number | null {
-  if (!fp.fechaPrometidaActual) return null;
-  const hasta = fp.fechaCumplida || todayISO();
-  const atraso = diffDays(fp.fechaPrometidaActual, hasta);
-  return atraso !== null ? Math.max(0, atraso) : null;
-}
-
-/** La primera fecha que se prometió, antes de cualquier reprogramación. Se deriva del historial:
- * si nunca se ha modificado, la fecha original es la misma fecha vigente; si ya se modificó una o
- * más veces, la original es el primer valor que quedó registrado en el historial (el más antiguo). */
-export function fechaPrometidaOriginal(fp: FechaPrometida): string {
-  if (!fp.historialFechas?.length) return fp.fechaPrometidaActual;
-  return fp.historialFechas[0].fecha;
-}
-
-/** Cuántas veces se ha reprogramado (movido) la fecha prometida desde que se creó el registro */
-export function vecesReprogramada(fp: FechaPrometida): number {
-  return fp.historialFechas?.length || 0;
-}
-
-/** Días de atraso medidos SIEMPRE contra el compromiso original, sin importar cuántas veces se haya
- * reprogramado la fecha vigente. A diferencia de diasAtrasoFechaPrometida (que se resetea cada vez que
- * se mueve la fecha), este número solo puede crecer — es la métrica de rendición de cuentas: cuánto se
- * ha alejado la entrega real del primer compromiso, independientemente de cuántas prórrogas hubo. */
-export function diasAtrasoOriginal(fp: FechaPrometida): number | null {
-  const original = fechaPrometidaOriginal(fp);
+  const original = fechaOriginalPrometida(fp);
   if (!original) return null;
   const hasta = fp.fechaCumplida || todayISO();
   const atraso = diffDays(original, hasta);
+  return atraso !== null ? Math.max(0, atraso) : null;
+}
+
+/** Atraso frente al compromiso VIGENTE (la fecha prometida actual, sin importar cuántas veces
+ * se haya modificado antes). Complementa a diasAtrasoFechaPrometida: útil para saber qué tan
+ * urgente es la promesa actual, sin perder de vista el atraso acumulado total. */
+export function diasAtrasoVsFechaActual(fp: FechaPrometida): number | null {
+  if (!fp.fechaPrometidaActual) return null;
+  const hasta = fp.fechaCumplida || todayISO();
+  const atraso = diffDays(fp.fechaPrometidaActual, hasta);
   return atraso !== null ? Math.max(0, atraso) : null;
 }
 
