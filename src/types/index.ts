@@ -252,7 +252,7 @@ export interface TallerCatalogo {
   holguraDias?: number;
 }
 
-export type TabId = 'dashboard' | 'maestro' | 'planificacion' | 'validacion' | 'bitacora' | 'quejas' | 'evaluacion' | 'fechas' | 'catalogo' | 'settings';
+export type TabId = 'dashboard' | 'maestro' | 'planificacion' | 'validacion' | 'bitacora' | 'quejas' | 'evaluacion' | 'fechas' | 'catalogo' | 'rendimiento' | 'settings';
 
 export type Rol = 'admin' | 'normal';
 export type NivelAcceso = 'ninguno' | 'ver' | 'editar';
