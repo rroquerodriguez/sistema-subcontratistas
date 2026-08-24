@@ -12,6 +12,7 @@ import { QuejasIncidencias } from '@/modules/quejas/quejas-incidencias';
 import { EvaluacionSemanal } from '@/modules/evaluacion/evaluacion-semanal';
 import { FechasPrometidas } from '@/modules/fechas/fechas-prometidas';
 import { CatalogoTalleres } from '@/modules/catalogo/catalogo-talleres';
+import { RendimientoReal } from '@/modules/rendimiento/rendimiento-real';
 import { SettingsPage } from '@/modules/settings/settings-page';
 import { dbGet, dbSet, supabase, clavesNoConfiables, onEscrituraBloqueada } from '@/lib/storage';
 import { onFalloGuardado } from '@/lib/persistir';
@@ -24,7 +25,7 @@ import { mondayOf, todayISO } from '@/lib/utils-app';
 import type { Subcontratista, Taller, Validacion, Entrega, RegistroBitacora, Queja, CicloTaller, FechaPrometida, TallerCatalogo, UnidadProyecto, ArchivoImportadoMeta, Perfil, TabId, CalendarioLaboral } from '@/types';
 import { CALENDARIO_LABORAL_DEFAULT } from '@/types';
 
-const ORDEN_MODULOS: TabId[] = ['dashboard', 'maestro', 'catalogo', 'planificacion', 'validacion', 'bitacora', 'quejas', 'fechas', 'evaluacion', 'settings'];
+const ORDEN_MODULOS: TabId[] = ['dashboard', 'maestro', 'catalogo', 'rendimiento', 'planificacion', 'validacion', 'bitacora', 'quejas', 'fechas', 'evaluacion', 'settings'];
 
 /** Nombres amigables de cada clave de datos, para los avisos de protección anti-borrado */
 const NOMBRE_CLAVE: Record<string, string> = {
@@ -252,6 +253,12 @@ function App() {
           )}
           {tabActiva === 'catalogo' && (
             <CatalogoTalleres subs={subs} catalogo={catalogo} setCatalogo={setCatalogo} calendario={calendario} showToast={showToast} />
+          )}
+          {tabActiva === 'rendimiento' && (
+            <RendimientoReal
+              subs={subs} talleres={talleres} ciclos={ciclos} validaciones={validaciones} quejas={quejas}
+              catalogo={catalogo} setCatalogo={setCatalogo} calendario={calendario} showToast={showToast}
+            />
           )}
           {tabActiva === 'planificacion' && (
             <PlanificacionSemanal
