@@ -19,6 +19,7 @@ const MODULOS: { id: TabId; label: string }[] = [
   { id: 'dashboard', label: 'Resumen' },
   { id: 'maestro', label: 'Subcontratistas' },
   { id: 'catalogo', label: 'Catálogo de talleres' },
+  { id: 'rendimiento', label: 'Rendimiento real' },
   { id: 'planificacion', label: 'Planificación' },
   { id: 'validacion', label: 'Liberación y entrega' },
   { id: 'bitacora', label: 'Bitácora diaria' },
