@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LayoutDashboard, Users, CalendarDays, ClipboardCheck, NotebookPen, AlertTriangle, BarChart3, Building2, CalendarClock, ListChecks, Settings, LogOut, MoreHorizontal } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarDays, ClipboardCheck, NotebookPen, AlertTriangle, BarChart3, Building2, CalendarClock, ListChecks, Settings, LogOut, MoreHorizontal, TrendingUp } from 'lucide-react';
 import type { TabId } from '@/types';
 import { cn } from '@/lib/utils';
 import { cerrarSesion } from '@/lib/auth';
@@ -9,6 +9,7 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'dashboard', label: 'Resumen', icon: LayoutDashboard },
   { id: 'maestro', label: 'Subcontratistas', icon: Users },
   { id: 'catalogo', label: 'Catálogo de talleres', icon: ListChecks },
+  { id: 'rendimiento', label: 'Rendimiento real', icon: TrendingUp },
   { id: 'planificacion', label: 'Planificación', icon: CalendarDays },
   { id: 'validacion', label: 'Liberación y entrega', icon: ClipboardCheck },
   { id: 'bitacora', label: 'Bitácora diaria', icon: NotebookPen },
